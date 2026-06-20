@@ -11,7 +11,6 @@ ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
       <RouterProvider router={router} future={{ v7_startTransition: true }} />
-      Hola mundo
     </QueryClientProvider>
   </React.StrictMode>
 );

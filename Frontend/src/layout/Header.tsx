@@ -13,6 +13,7 @@ export function Header() {
             <p className="text-xs font-semibold uppercase tracking-widest text-primary">
               Control e ingenieria de parqueo
             </p>
+            <p>Hola mundo</p>
           </div>
         </div>
       </div>
