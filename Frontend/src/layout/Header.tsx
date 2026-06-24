@@ -16,6 +16,7 @@ export function Header() {
             <p>Hola mundo</p>
             <p>Prueba</p>
             <p>Prueba 2</p>
+            <p>Hola</p>
           </div>
         </div>
       </div>
