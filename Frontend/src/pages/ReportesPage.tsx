@@ -1,3 +1,8 @@
+/**
+ * Página de Reportes.
+ * Permitirá al usuario administrador filtrar y exportar datos históricos
+ * sobre turnos cerrados, ganancias y volumen vehicular.
+ */
 export function ReportesPage() {
   return (
     <section className="space-y-2">

@@ -2,6 +2,11 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
+  """
+  Configuración global de la aplicación (Backend).
+  Utiliza Pydantic para cargar variables de entorno automáticamente
+  desde el archivo .env o del entorno del OS.
+  """
   database_url: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/smartpark_pro"
   jwt_secret_key: str = "change-me"
   jwt_algorithm: str = "HS256"
