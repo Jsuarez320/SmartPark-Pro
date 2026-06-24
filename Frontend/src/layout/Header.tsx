@@ -1,5 +1,10 @@
 import { Car } from "lucide-react";
 
+/**
+ * Componente Header de la interfaz.
+ * Muestra el logotipo, nombre del sistema y otra información contextual global
+ * persistente en todas las pantallas.
+ */
 export function Header() {
   return (
     <header className="border-b bg-white">

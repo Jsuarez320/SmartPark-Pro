@@ -1,3 +1,8 @@
+/**
+ * Página principal de aterrizaje tras abrir la aplicación.
+ * Se diseñará para mostrar métricas clave, ocupación en tiempo real 
+ * e ingresos consolidados.
+ */
 export function DashboardPage() {
   return (
     <section className="space-y-2">

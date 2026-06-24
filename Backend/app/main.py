@@ -3,8 +3,14 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
 
-app = FastAPI(title="SmartPark Pro API", version="0.1.0")
+# Inicialización de la aplicación FastAPI principal
+app = FastAPI(
+    title="SmartPark Pro API", 
+    version="0.1.0",
+    description="API RESTful para el sistema de parqueaderos."
+)
 
+# Configuración de CORS para permitir conexiones desde el Frontend (React/Electron)
 app.add_middleware(
   CORSMiddleware,
   allow_origins=settings.backend_cors_origins,
@@ -14,6 +20,11 @@ app.add_middleware(
 )
 
 
-@app.get("/health")
+@app.get("/health", tags=["Base"])
 async def health_check() -> dict[str, str]:
+  """
+  Endpoint de comprobación de salud (Health Check).
+  Utilizado por contenedores Docker y balanceadores de carga para 
+  verificar que el servidor backend responde adecuadamente.
+  """
   return {"status": "ok"}
