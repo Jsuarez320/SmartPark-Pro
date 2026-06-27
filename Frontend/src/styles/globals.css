@@ -3,6 +3,46 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    /* ── Brand ── */
+    --color-brand-primary: #007c8f;
+    --color-brand-hover: #006a7a;
+    --color-brand-bright: #00a1ba;
+    --color-brand-dark: #0b1a1e;
+
+    /* ── Vehicle categories ── */
+    --color-vehicle-auto: #007c8f;
+    --color-vehicle-moto: #ef4444;
+    --color-vehicle-ev: #16a34a;
+    --color-vehicle-pmr: #9333ea;
+
+    /* ── Destructive / alerts ── */
+    --color-destructive: #ef4444;
+    --color-destructive-foreground: #ffffff;
+    --color-destructive-light: #fef2f2;
+    --color-destructive-border: #fecaca;
+    --color-destructive-hover: #fee2e2;
+
+    /* ── Neutral (slate scale) ── */
+    --color-background: #f8fafc;
+    --color-surface: #ffffff;
+    --color-border: #e2e8f0;
+    --color-border-light: #f1f5f9;
+    --color-border-dashed: #cbd5e1;
+
+    /* ── Text ── */
+    --color-text-primary: #020617;
+    --color-text-secondary: #1e293b;
+    --color-text-tertiary: #475569;
+    --color-text-muted: #64748b;
+    --color-text-subtle: #94a3b8;
+
+    /* ── Interactive ── */
+    --color-accent: #0d9488;
+    --color-accent-foreground: #0f766e;
+    --color-icon: #94a3b8;
+  }
+
   * {
     @apply border-slate-200;
   }
