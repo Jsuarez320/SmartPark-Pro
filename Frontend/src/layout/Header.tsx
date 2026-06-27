@@ -1,6 +1,7 @@
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import { ClipboardList, Car, Wallet, Settings, LogOut } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
+import { useAuthStore } from "@/stores/authStore";
 
 const navItems = [
   { to: "/", label: "Registro", icon: ClipboardList },
@@ -10,6 +11,13 @@ const navItems = [
 ];
 
 export function Header() {
+  const logout = useAuthStore((s) => s.logout);
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate("/login", { replace: true });
+  };
   return (
     <header className="border-b border-border bg-surface">
       <div className="mx-auto flex h-14 w-full items-center justify-between px-6">
@@ -36,7 +44,7 @@ export function Header() {
           ))}
         </nav>
 
-        <Button variant="outline" className="text-text-muted border-border gap-2 text-sm">
+        <Button variant="outline" onClick={handleLogout} className="text-text-muted border-border gap-2 text-sm">
           <LogOut className="size-4" />
           Salir
         </Button>
