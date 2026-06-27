@@ -1,35 +1,45 @@
-import { Car, CalendarDays, PlusCircle } from "lucide-react";
+import { NavLink } from "react-router-dom";
+import { ClipboardList, Car, Wallet, Settings, LogOut } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
+
+const navItems = [
+  { to: "/", label: "Registro", icon: ClipboardList },
+  { to: "/vehiculos", label: "Vehículos", icon: Car },
+  { to: "/caja", label: "Caja", icon: Wallet },
+  { to: "/configuracion", label: "Configuración", icon: Settings },
+];
 
 export function Header() {
   return (
-    <header className="border-b bg-surface shadow-sm border-teal-600/20">
-      <div className="mx-auto flex h-20 w-full items-center justify-between px-6">
-        <div className="flex items-center gap-3">
-          <div className="flex size-12 items-center justify-center rounded-xl bg-brand-dark text-brand-bright shadow-md">
-            <Car className="size-6" aria-hidden="true" />
-          </div>
-          <div className="flex flex-col justify-center">
-            <h1 className="text-xl font-bold leading-tight text-text-primary tracking-tight">
-              SmartPark <span className="text-brand-bright">Pro</span>
-            </h1>
-            <p className="text-[10px] font-bold uppercase tracking-wider text-brand-bright">
-              Control e ingeniería de parqueo
-            </p>
-          </div>
-        </div>
+    <header className="border-b border-border bg-surface">
+      <div className="mx-auto flex h-14 w-full items-center justify-between px-6">
+        <h1 className="text-base font-bold text-text-primary tracking-tight">
+          Parqueadero
+        </h1>
 
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 rounded-md border border-border bg-background px-3 py-1.5 text-sm text-text-muted font-medium">
-            <CalendarDays className="size-4 opacity-70" />
-            <span>UTC mié, 24 de jun, 04:34 p. m.</span>
-          </div>
+        <nav className="flex items-center gap-1">
+          {navItems.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              className={({ isActive }) =>
+                `flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                  isActive
+                    ? "text-brand border-b-2 border-brand"
+                    : "text-text-muted hover:text-text-secondary"
+                }`
+              }
+            >
+              <item.icon className="size-4" />
+              {item.label}
+            </NavLink>
+          ))}
+        </nav>
 
-          <Button className="bg-brand hover:bg-brand-hover text-white rounded-full px-5 py-2 flex items-center gap-2 h-10 font-semibold shadow-md">
-            <PlusCircle className="size-5" />
-            Registrar Ingreso
-          </Button>
-        </div>
+        <Button variant="outline" className="text-text-muted border-border gap-2 text-sm">
+          <LogOut className="size-4" />
+          Salir
+        </Button>
       </div>
     </header>
   );
