@@ -1,31 +1,22 @@
-import { useState } from "react";
 import { CalendarDays, Clock } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/components/ui/select";
+import { useRegistro } from "../hooks/useRegistro";
 
 export function RegistroPage() {
-  const [placa, setPlaca] = useState("");
-  const [tipo, setTipo] = useState("carro");
-  const [marca, setMarca] = useState("");
-  const [mensualidad, setMensualidad] = useState(false);
-  const [pagoDiario, setPagoDiario] = useState(false);
-  const [diaEspecial, setDiaEspecial] = useState(false);
-
-  const now = new Date();
-  const fecha = now.toLocaleDateString("es-CO", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-  });
-  const hora = now.toLocaleTimeString("es-CO", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  const {
+    placa, setPlaca,
+    tipo, setTipo,
+    marca, setMarca,
+    mensualidad, setMensualidad,
+    pagoDiario, setPagoDiario,
+    diaEspecial, setDiaEspecial,
+    fecha, hora,
+  } = useRegistro();
 
   return (
     <div className="flex flex-col items-center py-8">
-      {/* Date / Time bar */}
       <div className="w-full max-w-2xl flex items-center justify-between mb-8 px-2">
         <div className="flex items-center gap-2 text-sm text-text-muted capitalize">
           <CalendarDays className="size-4 text-brand" />
@@ -37,21 +28,14 @@ export function RegistroPage() {
         </div>
       </div>
 
-      {/* Form Card */}
       <div className="w-full max-w-2xl rounded-2xl border border-border bg-surface p-8 shadow-sm">
         <h2 className="text-center text-2xl font-bold text-brand mb-8">
           Registro de Vehículo
         </h2>
 
-        <form
-          onSubmit={(e) => e.preventDefault()}
-          className="space-y-6"
-        >
-          {/* Placa */}
+        <form onSubmit={(e) => e.preventDefault()} className="space-y-6">
           <div className="space-y-2">
-            <label className="text-sm font-medium text-text-secondary">
-              Nº Placa
-            </label>
+            <label className="text-sm font-medium text-text-secondary">Nº Placa</label>
             <Input
               value={placa}
               onChange={(e) => setPlaca(e.target.value.toUpperCase())}
@@ -60,13 +44,10 @@ export function RegistroPage() {
             />
           </div>
 
-          {/* Tipo + Marca */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-text-secondary">
-                Tipo de Vehículo
-              </label>
-              <Select value={tipo} onValueChange={setTipo}>
+              <label className="text-sm font-medium text-text-secondary">Tipo de Vehículo</label>
+              <Select value={tipo} onValueChange={(v) => setTipo(v as "carro" | "moto")}>
                 <SelectTrigger className="h-11">
                   <SelectValue />
                 </SelectTrigger>
@@ -77,9 +58,7 @@ export function RegistroPage() {
               </Select>
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium text-text-secondary">
-                Marca
-              </label>
+              <label className="text-sm font-medium text-text-secondary">Marca</label>
               <Input
                 value={marca}
                 onChange={(e) => setMarca(e.target.value)}
@@ -89,14 +68,13 @@ export function RegistroPage() {
             </div>
           </div>
 
-          {/* Checkboxes */}
           <div className="space-y-3 pt-2">
             <label className="flex items-center gap-3 cursor-pointer">
               <input
                 type="checkbox"
                 checked={mensualidad}
                 onChange={(e) => setMensualidad(e.target.checked)}
-                className="size-4 rounded border-border text-brand accent-brand"
+                className="size-4 rounded border-border accent-brand"
               />
               <span className="text-sm text-text-secondary">Mensualidad</span>
             </label>
@@ -105,7 +83,7 @@ export function RegistroPage() {
                 type="checkbox"
                 checked={pagoDiario}
                 onChange={(e) => setPagoDiario(e.target.checked)}
-                className="size-4 rounded border-border text-brand accent-brand"
+                className="size-4 rounded border-border accent-brand"
               />
               <span className="text-sm text-text-secondary">Pago Diario</span>
             </label>
@@ -113,7 +91,7 @@ export function RegistroPage() {
               <input
                 type="checkbox"
                 checked={diaEspecial}
-                onChange={(e) => setDiaEspecial(e.target.checked)}
+                onChange={() => {}}
                 disabled
                 className="size-4 rounded border-border"
               />
@@ -121,12 +99,9 @@ export function RegistroPage() {
             </label>
           </div>
 
-          {/* Precio + Submit */}
           <div className="flex items-center gap-4 pt-2">
             <div className="flex-1 space-y-2">
-              <label className="text-sm font-medium text-text-secondary">
-                Precio a Pagar
-              </label>
+              <label className="text-sm font-medium text-text-secondary">Precio a Pagar</label>
               <div className="flex h-11 items-center rounded-md border border-border bg-background px-4 text-lg font-bold text-text-subtle">
                 $$$$
               </div>
