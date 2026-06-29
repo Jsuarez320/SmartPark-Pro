@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Car, Eye, EyeOff } from "lucide-react";
+import { Car, Eye, EyeOff, Loader2 } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { useAuthStore } from "@/stores/authStore";
@@ -9,30 +9,29 @@ export function LoginPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState("");
+
   const login = useAuthStore((s) => s.login);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const loading = useAuthStore((s) => s.loading);
+  const error = useAuthStore((s) => s.error);
+  const clearError = useAuthStore((s) => s.clearError);
   const navigate = useNavigate();
 
   useEffect(() => {
     if (isAuthenticated) navigate("/", { replace: true });
   }, [isAuthenticated, navigate]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
+    clearError();
 
     if (!username || !password) {
-      setError("Ingrese usuario y contraseña");
+      useAuthStore.setState({ error: "Ingrese usuario y contraseña" });
       return;
     }
 
-    const ok = login(username, password);
-    if (ok) {
-      navigate("/");
-    } else {
-      setError("Credenciales incorrectas");
-    }
+    const ok = await login(username, password);
+    if (ok) navigate("/", { replace: true });
   };
 
   return (
@@ -62,8 +61,9 @@ export function LoginPage() {
               <Input
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder="admin"
+                placeholder="Usuario"
                 className="h-11"
+                disabled={loading}
                 autoFocus
               />
             </div>
@@ -79,11 +79,13 @@ export function LoginPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••"
                   className="h-11 pr-10"
+                  disabled={loading}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-text-subtle hover:text-text-muted"
+                  tabIndex={-1}
                 >
                   {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                 </button>
@@ -96,9 +98,17 @@ export function LoginPage() {
 
             <Button
               type="submit"
+              disabled={loading}
               className="w-full h-11 bg-brand hover:bg-brand-hover text-white font-semibold"
             >
-              Iniciar Sesión
+              {loading ? (
+                <span className="flex items-center gap-2">
+                  <Loader2 className="size-4 animate-spin" />
+                  Ingresando...
+                </span>
+              ) : (
+                "Iniciar Sesión"
+              )}
             </Button>
           </div>
         </form>

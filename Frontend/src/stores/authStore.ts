@@ -1,5 +1,4 @@
 import { create } from "zustand";
-import type { LoginResponse } from "./services/auth.service";
 
 interface AuthState {
   user: { id: number; username: string } | null;
@@ -9,7 +8,7 @@ interface AuthState {
   error: string | null;
   login: (username: string, password: string) => Promise<boolean>;
   logout: () => void;
-  setSession: (data: LoginResponse) => void;
+  setSession: (data: { access_token: string; token_type: string; user: { id: number; username: string } }) => void;
   clearError: () => void;
 }
 
@@ -23,7 +22,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   login: async (username, password) => {
     set({ loading: true, error: null });
     try {
-      const { loginRequest } = await import("./services/auth.service");
+      const { loginRequest } = await import("@/modules/auth/services/auth.service");
       const data = await loginRequest(username, password);
       set({
         user: data.user,

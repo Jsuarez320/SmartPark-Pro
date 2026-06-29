@@ -1,8 +1,9 @@
-import { CalendarDays, Clock } from "lucide-react";
+import { CalendarDays, Clock, Loader2 } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/components/ui/select";
 import { useRegistro } from "../hooks/useRegistro";
+import { AlertaRegistro } from "./AlertaRegistro";
 
 export function RegistroPage() {
   const {
@@ -12,8 +13,18 @@ export function RegistroPage() {
     mensualidad, setMensualidad,
     pagoDiario, setPagoDiario,
     diaEspecial, setDiaEspecial,
+    envio,
+    respuesta,
+    alertaAbierta,
+    registrar,
+    cerrarAlerta,
     fecha, hora,
   } = useRegistro();
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    registrar();
+  };
 
   return (
     <div className="flex flex-col items-center py-8">
@@ -33,7 +44,7 @@ export function RegistroPage() {
           Registro de Vehículo
         </h2>
 
-        <form onSubmit={(e) => e.preventDefault()} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-2">
             <label className="text-sm font-medium text-text-secondary">Nº Placa</label>
             <Input
@@ -41,13 +52,14 @@ export function RegistroPage() {
               onChange={(e) => setPlaca(e.target.value.toUpperCase())}
               placeholder="EJ: ABC123"
               className="h-11"
+              disabled={envio}
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <label className="text-sm font-medium text-text-secondary">Tipo de Vehículo</label>
-              <Select value={tipo} onValueChange={(v) => setTipo(v as "carro" | "moto")}>
+              <Select value={tipo} onValueChange={(v) => setTipo(v as "carro" | "moto")} disabled={envio}>
                 <SelectTrigger className="h-11">
                   <SelectValue />
                 </SelectTrigger>
@@ -64,6 +76,7 @@ export function RegistroPage() {
                 onChange={(e) => setMarca(e.target.value)}
                 placeholder="Ej: Yamaha"
                 className="h-11"
+                disabled={envio}
               />
             </div>
           </div>
@@ -74,6 +87,7 @@ export function RegistroPage() {
                 type="checkbox"
                 checked={mensualidad}
                 onChange={(e) => setMensualidad(e.target.checked)}
+                disabled={envio}
                 className="size-4 rounded border-border accent-brand"
               />
               <span className="text-sm text-text-secondary">Mensualidad</span>
@@ -83,6 +97,7 @@ export function RegistroPage() {
                 type="checkbox"
                 checked={pagoDiario}
                 onChange={(e) => setPagoDiario(e.target.checked)}
+                disabled={envio}
                 className="size-4 rounded border-border accent-brand"
               />
               <span className="text-sm text-text-secondary">Pago Diario</span>
@@ -103,19 +118,33 @@ export function RegistroPage() {
             <div className="flex-1 space-y-2">
               <label className="text-sm font-medium text-text-secondary">Precio a Pagar</label>
               <div className="flex h-11 items-center rounded-md border border-border bg-background px-4 text-lg font-bold text-text-subtle">
-                $$$$
+                {mensualidad ? "$100.000" : pagoDiario ? "$15.000" : "$3.200"}
               </div>
             </div>
             <Button
               type="submit"
+              disabled={envio || !placa}
               variant="outline"
               className="h-11 px-8 border-brand text-brand hover:bg-brand-light font-semibold mt-6"
             >
-              Registrar entrada
+              {envio ? (
+                <span className="flex items-center gap-2">
+                  <Loader2 className="size-4 animate-spin" />
+                  Registrando...
+                </span>
+              ) : (
+                "Registrar entrada"
+              )}
             </Button>
           </div>
         </form>
       </div>
+
+      <AlertaRegistro
+        open={alertaAbierta}
+        data={respuesta}
+        onClose={cerrarAlerta}
+      />
     </div>
   );
 }
