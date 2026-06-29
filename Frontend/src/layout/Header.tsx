@@ -1,11 +1,12 @@
 import { NavLink, useNavigate } from "react-router-dom";
-import { ClipboardList, Car, Wallet, Settings, LogOut } from "lucide-react";
+import { ClipboardList, Car, Wallet, Settings, LogOut, Receipt } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import { useAuthStore } from "@/stores/authStore";
 
 const navItems = [
   { to: "/", label: "Registro", icon: ClipboardList },
   { to: "/vehiculos", label: "Vehículos", icon: Car },
+  { to: "/pago", label: "Pagar", icon: Receipt },
   { to: "/caja", label: "Caja", icon: Wallet },
   { to: "/configuracion", label: "Configuración", icon: Settings },
 ];
@@ -18,6 +19,7 @@ export function Header() {
     logout();
     navigate("/login", { replace: true });
   };
+
   return (
     <header className="border-b border-border bg-surface">
       <div className="mx-auto flex h-14 w-full items-center justify-between px-6">

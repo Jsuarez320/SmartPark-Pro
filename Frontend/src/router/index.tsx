@@ -5,6 +5,7 @@ import { RegistroPage } from "@/modules/registro";
 import { VehiculosPage } from "@/modules/vehiculos";
 import { CajaPage } from "@/modules/caja";
 import { ConfiguracionPage } from "@/modules/configuracion";
+import { PagoPage } from "@/modules/receipt";
 
 export const router = createBrowserRouter([
   {
@@ -30,6 +31,10 @@ export const router = createBrowserRouter([
       {
         path: "configuracion",
         element: <ConfiguracionPage />
+      },
+      {
+        path: "pago",
+        element: <PagoPage />
       },
     ],
   },

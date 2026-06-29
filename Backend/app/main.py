@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
+from app.routers import auth
 
 # Inicialización de la aplicación FastAPI principal
 app = FastAPI(
@@ -20,11 +21,9 @@ app.add_middleware(
 )
 
 
+app.include_router(auth.router)
+
+
 @app.get("/health", tags=["Base"])
 async def health_check() -> dict[str, str]:
-  """
-  Endpoint de comprobación de salud (Health Check).
-  Utilizado por contenedores Docker y balanceadores de carga para 
-  verificar que el servidor backend responde adecuadamente.
-  """
   return {"status": "ok"}
