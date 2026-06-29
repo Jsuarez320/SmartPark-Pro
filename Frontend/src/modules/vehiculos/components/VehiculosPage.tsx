@@ -1,4 +1,4 @@
-import { Search, CalendarDays, AlertTriangle, Clock, ShieldCheck } from "lucide-react";
+import { Search, CalendarDays, AlertTriangle, Clock, ShieldCheck, RefreshCw } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { useVehiculos } from "../hooks/useVehiculos";
@@ -7,18 +7,30 @@ export function VehiculosPage() {
   const {
     searchQuery,
     setSearchQuery,
+    vehiculos,
     totalVehiculos,
+    mensuales,
     totalMensuales,
     statsMensuales,
   } = useVehiculos();
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold text-text-primary">Gestión de Vehículos</h1>
-        <p className="text-sm text-text-muted mt-1">
-          Administra la información de todos los vehículos registrados en el sistema
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-text-primary">Gestión de Vehículos</h1>
+          <p className="text-sm text-text-muted mt-1">
+            Administra la información de todos los vehículos registrados en el sistema
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          className="gap-2 text-text-muted border-border"
+          onClick={() => window.location.reload()}
+        >
+          <RefreshCw className="size-4" />
+          Recargar
+        </Button>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
@@ -55,10 +67,39 @@ export function VehiculosPage() {
 
         <h3 className="text-sm font-bold text-text-secondary mb-4">Lista Completa de Vehículos</h3>
 
-        <div className="flex flex-col items-center justify-center py-12 text-center">
-          <CalendarDays className="size-10 text-text-subtle mb-3" />
-          <p className="text-sm text-text-muted">No hay registros de placas</p>
-        </div>
+        {vehiculos.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-12 text-center">
+            <CalendarDays className="size-10 text-text-subtle mb-3" />
+            <p className="text-sm text-text-muted">No hay registros de placas</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border">
+                  <th className="text-left py-3 px-2 font-medium text-text-muted">Placa</th>
+                  <th className="text-left py-3 px-2 font-medium text-text-muted">Tipo</th>
+                  <th className="text-left py-3 px-2 font-medium text-text-muted">Propietario</th>
+                  <th className="text-left py-3 px-2 font-medium text-text-muted">Marca</th>
+                  <th className="text-left py-3 px-2 font-medium text-text-muted">Mensualidad</th>
+                  <th className="text-left py-3 px-2 font-medium text-text-muted">Registro</th>
+                </tr>
+              </thead>
+              <tbody>
+                {vehiculos.map((v) => (
+                  <tr key={v.placa} className="border-b border-border-light hover:bg-background">
+                    <td className="py-3 px-2 font-bold text-text-primary">{v.placa}</td>
+                    <td className="py-3 px-2 text-text-secondary capitalize">{v.tipo}</td>
+                    <td className="py-3 px-2 text-text-secondary">{v.propietario || "—"}</td>
+                    <td className="py-3 px-2 text-text-secondary">{v.marca || "—"}</td>
+                    <td className="py-3 px-2">{v.mensualidad ? <span className="rounded-full bg-green-50 px-2.5 py-0.5 text-xs font-semibold text-green-700">Sí</span> : <span className="text-text-muted">No</span>}</td>
+                    <td className="py-3 px-2 text-text-muted">{v.fechaRegistro}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       <div className="rounded-xl border border-border bg-surface p-6 shadow-sm">
@@ -98,10 +139,35 @@ export function VehiculosPage() {
           </div>
         </div>
 
-        <div className="flex flex-col items-center justify-center py-12 text-center">
-          <CalendarDays className="size-10 text-text-subtle mb-3" />
-          <p className="text-sm text-text-muted">No hay clientes mensuales registrados</p>
-        </div>
+        {mensuales.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-12 text-center">
+            <CalendarDays className="size-10 text-text-subtle mb-3" />
+            <p className="text-sm text-text-muted">No hay clientes mensuales registrados</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border">
+                  <th className="text-left py-3 px-2 font-medium text-text-muted">Placa</th>
+                  <th className="text-left py-3 px-2 font-medium text-text-muted">Propietario</th>
+                  <th className="text-left py-3 px-2 font-medium text-text-muted">Vencimiento</th>
+                  <th className="text-left py-3 px-2 font-medium text-text-muted">Estado</th>
+                </tr>
+              </thead>
+              <tbody>
+                {mensuales.map((m) => (
+                  <tr key={m.placa} className="border-b border-border-light hover:bg-background">
+                    <td className="py-3 px-2 font-bold text-text-primary">{m.placa}</td>
+                    <td className="py-3 px-2 text-text-secondary">{m.propietario || "—"}</td>
+                    <td className="py-3 px-2 text-text-secondary">{m.vencimiento}</td>
+                    <td className="py-3 px-2">{m.estado}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );

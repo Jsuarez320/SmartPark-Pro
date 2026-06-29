@@ -1,11 +1,30 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { Vehiculo, Mensual, EstadisticasVehiculos } from "../vehiculos.types";
+import { obtenerVehiculos, obtenerMensuales, obtenerEstadisticas } from "../services/vehiculos.service";
 
 export function useVehiculos() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [vehiculos] = useState<Vehiculo[]>([]);
-  const [mensuales] = useState<Mensual[]>([]);
-  const [stats] = useState<EstadisticasVehiculos>({ totalPlacas: 0, totalMensuales: 0 });
+  const [vehiculos, setVehiculos] = useState<Vehiculo[]>([]);
+  const [mensuales, setMensuales] = useState<Mensual[]>([]);
+  const [stats, setStats] = useState<EstadisticasVehiculos>({ totalPlacas: 0, totalMensuales: 0 });
+
+  useEffect(() => {
+    const cargar = async () => {
+      try {
+        const [v, m, s] = await Promise.all([
+          obtenerVehiculos(),
+          obtenerMensuales(),
+          obtenerEstadisticas(),
+        ]);
+        setVehiculos(v);
+        setMensuales(m);
+        setStats(s);
+      } catch {
+        // Error silencioso — la UI muestra estado vacío
+      }
+    };
+    cargar();
+  }, []);
 
   const vehiculosFiltrados = searchQuery
     ? vehiculos.filter((v) => v.placa.includes(searchQuery.toUpperCase()))

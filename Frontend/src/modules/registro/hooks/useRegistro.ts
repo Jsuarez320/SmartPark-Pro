@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { RespuestaRegistro } from "../components/AlertaRegistro";
 import type { TipoVehiculoRegistro } from "../registro.types";
+import { registrarEntrada } from "../services/registro.service";
 
 export function useRegistro() {
   const [placa, setPlaca] = useState("");
@@ -27,25 +28,47 @@ export function useRegistro() {
 
     setEnvio(true);
 
-    await new Promise((r) => setTimeout(r, 800));
+    try {
+      const response = await registrarEntrada({
+        placa,
+        tipo,
+        marca,
+        mensualidad,
+        pagoDiario,
+        diaEspecial,
+      });
 
-    const res: RespuestaRegistro = {
-      mensaje: `Vehículo con placa ${placa} ingresado correctamente`,
-      id: crypto.randomUUID(),
-      estado: "activo",
-      placa,
-      tipo,
-      horaIngreso: new Date().toLocaleTimeString("es-CO", {
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
-      total: mensualidad ? 100000 : pagoDiario ? 15000 : 3200,
-    };
+      const res: RespuestaRegistro = {
+        mensaje: `Vehículo con placa ${placa} ingresado correctamente`,
+        id: response.id,
+        estado: response.estado,
+        placa,
+        tipo,
+        horaIngreso: new Date().toLocaleTimeString("es-CO", {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+        total: response.total,
+      };
 
-    setRespuesta(res);
-    setAlertaAbierta(true);
-    setEnvio(false);
-    limpiar();
+      setRespuesta(res);
+      setAlertaAbierta(true);
+      limpiar();
+    } catch (err: any) {
+      const mensaje =
+        err?.response?.data?.detail || err?.message || "Error al registrar vehículo";
+      setRespuesta({
+        mensaje,
+        id: "",
+        estado: "error",
+        placa,
+        tipo,
+        horaIngreso: "",
+      });
+      setAlertaAbierta(true);
+    } finally {
+      setEnvio(false);
+    }
   };
 
   const cerrarAlerta = () => {

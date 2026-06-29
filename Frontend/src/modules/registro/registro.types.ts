@@ -13,3 +13,10 @@ export interface PrecioResponse {
   monto: number;
   concepto: string;
 }
+
+export interface RegistroResponse {
+  id: string;
+  estado: string;
+  total?: number;
+  mensaje: string;
+}
