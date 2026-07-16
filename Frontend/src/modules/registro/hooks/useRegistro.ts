@@ -76,17 +76,6 @@ export function useRegistro() {
     setRespuesta(null);
   };
 
-  const fecha = new Date().toLocaleDateString("es-CO", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-  });
-
-  const hora = new Date().toLocaleTimeString("es-CO", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-
   return {
     placa, setPlaca,
     tipo, setTipo,
@@ -99,6 +88,5 @@ export function useRegistro() {
     alertaAbierta,
     registrar,
     cerrarAlerta,
-    fecha, hora,
   };
 }

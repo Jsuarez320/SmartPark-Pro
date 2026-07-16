@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
-from app.routers import auth, ingreso, vehiculo
+from app.routers import auth, caja, ingreso, vehiculo
 
 # Inicialización de la aplicación FastAPI principal
 app = FastAPI(
@@ -22,6 +22,7 @@ app.add_middleware(
 
 
 app.include_router(auth.router)
+app.include_router(caja.router)
 app.include_router(ingreso.router)
 app.include_router(vehiculo.router)
 

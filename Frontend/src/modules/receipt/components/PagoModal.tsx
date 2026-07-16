@@ -34,7 +34,8 @@ export function PagoModal({ open, onClose, placa = "ABC123" }: PagoModalProps) {
 
   if (!open) return null;
 
-  const cambio = Math.max(0, montoRecibido - (datosRecibo?.total ?? 0));
+  const total = datosRecibo?.total ?? 0;
+  const cambio = Math.max(0, montoRecibido - total);
 
   const handlePagar = async () => {
     await pagar(placa);
@@ -46,16 +47,21 @@ export function PagoModal({ open, onClose, placa = "ABC123" }: PagoModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="relative w-full max-w-lg rounded-2xl border border-border bg-surface p-6 shadow-xl">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) handleCerrar();
+      }}
+    >
+      <div className="relative w-full max-w-lg mx-4 rounded-2xl border border-border bg-surface p-6 shadow-xl">
         <button
           onClick={handleCerrar}
-          className="absolute right-4 top-4 text-text-subtle hover:text-text-muted"
+          className="absolute right-4 top-4 text-text-subtle hover:text-text-muted transition-colors"
+          aria-label="Cerrar"
         >
           <X className="size-5" />
         </button>
 
-        {/* ── PAGO ── */}
         {!pagado && (
           <div className="space-y-6">
             <div>
@@ -63,15 +69,18 @@ export function PagoModal({ open, onClose, placa = "ABC123" }: PagoModalProps) {
               <p className="text-sm text-text-muted mt-1">Registre la salida del vehículo</p>
             </div>
 
-            <div className="rounded-xl bg-background border border-border p-4 space-y-1">
-              <p className="text-xs text-text-muted uppercase tracking-wider font-semibold">Vehículo</p>
+            <div className="rounded-xl bg-background border border-border p-4 space-y-2">
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-text-muted uppercase tracking-wider font-semibold">Vehículo</p>
+                <span className="text-xs text-text-muted">Ticket: TKT-{placa}</span>
+              </div>
               <p className="text-2xl font-bold text-text-primary">{placa}</p>
-              <div className="flex gap-4 text-sm text-text-muted mt-2">
+              <div className="flex gap-4 text-sm text-text-muted">
                 <span>Ingreso: 18:30</span>
                 <span>Tiempo: 1h 30min</span>
               </div>
-              <p className="text-3xl font-bold text-text-primary mt-3">
-                $3.200
+              <p className="text-3xl font-bold text-brand mt-2">
+                ${total.toLocaleString()}
               </p>
             </div>
 
@@ -82,10 +91,10 @@ export function PagoModal({ open, onClose, placa = "ABC123" }: PagoModalProps) {
                   <button
                     key={m.value}
                     onClick={() => setMetodoPago(m.value)}
-                    className={`flex flex-col items-center gap-1.5 rounded-xl border py-3 px-2 text-sm font-medium transition-colors ${
+                    className={`flex flex-col items-center gap-1.5 rounded-xl border py-3 px-2 text-sm font-medium transition-all ${
                       metodoPago === m.value
-                        ? "border-brand bg-brand-light text-brand"
-                        : "border-border text-text-muted hover:border-brand/50"
+                        ? "border-brand bg-brand-light text-brand shadow-sm"
+                        : "border-border text-text-muted hover:border-brand/50 hover:text-text-secondary"
                     }`}
                   >
                     <m.icon className="size-5" />
@@ -96,7 +105,7 @@ export function PagoModal({ open, onClose, placa = "ABC123" }: PagoModalProps) {
             </div>
 
             {metodoPago === "efectivo" && (
-              <div className="space-y-3">
+              <div className="space-y-3 rounded-xl bg-background border border-border p-4">
                 <div>
                   <label className="text-sm font-medium text-text-secondary">Monto recibido</label>
                   <Input
@@ -104,7 +113,8 @@ export function PagoModal({ open, onClose, placa = "ABC123" }: PagoModalProps) {
                     value={montoRecibido || ""}
                     onChange={(e) => setMontoRecibido(Number(e.target.value))}
                     placeholder="$0"
-                    className="h-11 mt-1 text-lg font-bold"
+                    className="h-12 mt-1.5 text-lg font-bold"
+                    min={0}
                   />
                 </div>
 
@@ -113,11 +123,17 @@ export function PagoModal({ open, onClose, placa = "ABC123" }: PagoModalProps) {
                     <button
                       key={m}
                       onClick={() => agregarMonto(m)}
-                      className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-text-secondary hover:bg-background"
+                      className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-text-secondary hover:bg-background hover:border-brand/50 transition-colors"
                     >
-                      ${m.toLocaleString()}
+                      +${m.toLocaleString()}
                     </button>
                   ))}
+                  <button
+                    onClick={() => setMontoRecibido(total + cambio)}
+                    className="rounded-lg border border-brand px-4 py-2 text-sm font-medium text-brand hover:bg-brand-light transition-colors"
+                  >
+                    Exacto ${total.toLocaleString()}
+                  </button>
                 </div>
 
                 {cambio > 0 && (
@@ -132,14 +148,17 @@ export function PagoModal({ open, onClose, placa = "ABC123" }: PagoModalProps) {
             <Button
               onClick={handlePagar}
               disabled={cargando || (metodoPago === "efectivo" && montoRecibido <= 0)}
-              className="w-full h-12 bg-brand hover:bg-brand-hover text-white font-bold text-base"
+              className="w-full h-12 bg-brand hover:bg-brand-hover text-white font-bold text-base shadow-sm"
             >
-              {cargando ? "Procesando..." : "Finalizar Pago"}
+              {cargando ? (
+                <span className="flex items-center gap-2">Procesando...</span>
+              ) : (
+                `Cobrar $${total.toLocaleString()}`
+              )}
             </Button>
           </div>
         )}
 
-        {/* ── RECIBO ── */}
         {pagado && datosRecibo && (
           <div className="space-y-6">
             <div className="text-center">
@@ -211,7 +230,7 @@ export function PagoModal({ open, onClose, placa = "ABC123" }: PagoModalProps) {
             <div className="flex gap-3">
               <Button
                 onClick={imprimir}
-                className="flex-1 h-11 bg-brand hover:bg-brand-hover text-white font-semibold gap-2"
+                className="flex-1 h-12 bg-brand hover:bg-brand-hover text-white font-semibold gap-2 shadow-sm"
               >
                 <Printer className="size-4" />
                 Imprimir Recibo
@@ -219,7 +238,7 @@ export function PagoModal({ open, onClose, placa = "ABC123" }: PagoModalProps) {
               <Button
                 variant="outline"
                 onClick={handleCerrar}
-                className="flex-1 h-11 border-border text-text-muted font-semibold"
+                className="flex-1 h-12 border-border text-text-muted font-semibold"
               >
                 Cerrar
               </Button>

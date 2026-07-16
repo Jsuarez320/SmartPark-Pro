@@ -19,7 +19,7 @@ export function AppLayout() {
   return (
     <div className="min-h-screen bg-background text-text-primary">
       <Header />
-      <main key={location.pathname} className="mx-auto w-full max-w-4xl px-6 py-4">
+      <main key={location.pathname} className="mx-auto w-full max-w-6xl px-4 sm:px-6 py-6">
         <Outlet />
       </main>
     </div>

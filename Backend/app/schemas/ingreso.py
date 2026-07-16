@@ -6,7 +6,6 @@ class RegistrarIngresoRequest(BaseModel):
     placa: str
     tipo_vehiculo_id: int
     plan_id: int
-    operador_id: str
     notas: str | None = None
 
 

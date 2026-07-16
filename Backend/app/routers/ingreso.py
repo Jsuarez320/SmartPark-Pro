@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
+from app.dependencies.auth import require_employee
 from app.schemas.ingreso import IngresoResponse, RegistrarIngresoRequest, TarifaOut
 from app.services.ingreso import (
     buscar_o_crear_vehiculo,
@@ -14,12 +15,19 @@ router = APIRouter(prefix="/ingresos", tags=["Ingresos"])
 
 
 @router.get("/tarifas", response_model=list[TarifaOut])
-async def listar_tarifas(db: AsyncSession = Depends(get_db)):
+async def listar_tarifas(
+    db: AsyncSession = Depends(get_db),
+    current_user=Depends(require_employee),
+):
     return await obtener_tarifas(db)
 
 
 @router.post("/registrar", response_model=IngresoResponse)
-async def registrar(body: RegistrarIngresoRequest, db: AsyncSession = Depends(get_db)):
+async def registrar(
+    body: RegistrarIngresoRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user=Depends(require_employee),
+):
     tarifa = await obtener_tarifa_activa(db, body.tipo_vehiculo_id, body.plan_id)
     if not tarifa:
         raise HTTPException(
@@ -35,7 +43,7 @@ async def registrar(body: RegistrarIngresoRequest, db: AsyncSession = Depends(ge
         placa=body.placa.upper(),
         plan_id=body.plan_id,
         tarifa_id=tarifa.id,
-        operador_id=body.operador_id,
+        operador_id=str(current_user.id),
         notas=body.notas,
     )
 

@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
+from app.dependencies.auth import require_employee
 from app.schemas.vehiculo import (
     EntradaRequest,
     EntradaResponse,
@@ -10,7 +11,6 @@ from app.schemas.vehiculo import (
 )
 from app.services.vehiculo import (
     buscar_o_crear_vehiculo,
-    obtener_admin_id,
     obtener_plan_id,
     obtener_tarifa,
     obtener_tipo_id,
@@ -21,7 +21,11 @@ router = APIRouter(prefix="/vehiculos", tags=["Vehículos"])
 
 
 @router.post("/calcular-precio", response_model=PrecioResponse)
-async def calcular_precio(body: PrecioRequest, db: AsyncSession = Depends(get_db)):
+async def calcular_precio(
+    body: PrecioRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user=Depends(require_employee),
+):
     tipo_id = await obtener_tipo_id(db, body.tipo or "carro")
     if not tipo_id:
         raise HTTPException(status_code=400, detail="Tipo de vehículo inválido")
@@ -38,7 +42,11 @@ async def calcular_precio(body: PrecioRequest, db: AsyncSession = Depends(get_db
 
 
 @router.post("/entrada", response_model=EntradaResponse)
-async def entrada(body: EntradaRequest, db: AsyncSession = Depends(get_db)):
+async def entrada(
+    body: EntradaRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user=Depends(require_employee),
+):
     tipo_id = await obtener_tipo_id(db, body.tipo)
     if not tipo_id:
         raise HTTPException(status_code=400, detail="Tipo de vehículo inválido")
@@ -48,10 +56,6 @@ async def entrada(body: EntradaRequest, db: AsyncSession = Depends(get_db)):
     if not tarifa:
         raise HTTPException(status_code=404, detail="No hay tarifa activa para ese tipo y plan")
 
-    operador_id = await obtener_admin_id(db)
-    if not operador_id:
-        raise HTTPException(status_code=500, detail="No se encontró un operador por defecto")
-
     vehiculo = await buscar_o_crear_vehiculo(db, body.placa.upper(), tipo_id, body.marca)
     ingreso = await registrar_ingreso(
         db,
@@ -59,7 +63,7 @@ async def entrada(body: EntradaRequest, db: AsyncSession = Depends(get_db)):
         placa=body.placa.upper(),
         plan_id=plan_id,
         tarifa_id=tarifa.id,
-        operador_id=operador_id,
+        operador_id=str(current_user.id),
     )
 
     await db.commit()
