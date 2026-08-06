@@ -1,0 +1,170 @@
+{
+  "meta": {
+    "project": "SmartPark Pro",
+    "scope": "Frontend/ (React 18 + TypeScript + Vite + TailwindCSS + Radix UI + Electron)",
+    "phase": "Fase 1 — la UI es alta fidelidad, varias pantallas usan datos simulados",
+    "source": "DESIGN_ANALYSIS.md (agosto 2026)",
+    "theme_control": "Clase .dark en <html> vía uiStore. Inicia light. Sin persistencia."
+  },
+  "colors": {
+    "light": {
+      "brand-primary": "#0891b2",
+      "brand-hover": "#0e7490",
+      "brand-light": "#ecfeff",
+      "brand-dark": "#164e63",
+      "vehicle-auto": "#0891b2",
+      "vehicle-moto": "#dc2626",
+      "destructive": "#dc2626",
+      "destructive-foreground": "#ffffff",
+      "background": "#f8fafc",
+      "surface": "#ffffff",
+      "border": "#e2e8f0",
+      "border-light": "#f1f5f9",
+      "text-primary": "#0f172a",
+      "text-secondary": "#334155",
+      "text-muted": "#64748b",
+      "text-subtle": "#94a3b8",
+      "text-disabled": "#cbd5e1"
+    },
+    "dark": {
+      "brand-primary": "#22d3ee",
+      "brand-hover": "#67e8f9",
+      "brand-light": "#164e63",
+      "brand-dark": "#155e75",
+      "vehicle-auto": "#22d3ee",
+      "vehicle-moto": "#f87171",
+      "destructive": "#ef4444",
+      "destructive-foreground": "#ffffff",
+      "background": "#020617",
+      "surface": "#0f172a",
+      "border": "#1e293b",
+      "border-light": "#1e293b",
+      "text-primary": "#f1f5f9",
+      "text-secondary": "#cbd5e1",
+      "text-muted": "#94a3b8",
+      "text-subtle": "#64748b",
+      "text-disabled": "#475569"
+    },
+    "hardcoded": {
+      "green-50": "#f0fdf4",
+      "green-100": "#dcfce7",
+      "green-500": "#22c55e",
+      "green-600": "#16a34a",
+      "green-700": "#15803d",
+      "red-50": "#fef2f2",
+      "red-100": "#fee2e2",
+      "yellow-50": "#fefce8",
+      "yellow-100": "#fef9c3",
+      "yellow-600": "#ca8a04",
+      "orange-50": "#fff7ed",
+      "orange-100": "#ffedd5",
+      "orange-500": "#f97316",
+      "blue-50": "#eff6ff",
+      "blue-100": "#dbeafe",
+      "blue-400": "#60a5fa",
+      "blue-600": "#2563eb",
+      "gray-300": "#d1d5db",
+      "black-40": "rgba(0,0,0,0.40)",
+      "white": "#ffffff"
+    },
+    "semantics": {
+      "success": "verde hardcodeado (sin token único)",
+      "error": "destructive rojo",
+      "warning": "amarillo + naranja (sin límite claro)",
+      "info": "azul (solo Caja)"
+    },
+    "missing_tokens": ["success", "warning", "info", "alert"]
+  },
+  "radii": {
+    "rounded-md": "6px",
+    "rounded-lg": "8px",
+    "rounded-xl": "12px",
+    "rounded-2xl": "16px",
+    "rounded-full": "9999px"
+  },
+  "spacing": {
+    "scale_base": "4px (Tailwind default)",
+    "page_blocks": "space-y-6 (24px)",
+    "card_grid": "gap-4 (16px)",
+    "card_padding": "p-5 (20px) / p-6 (24px)",
+    "form_padding": "p-6 sm:p-8 (24/32px)",
+    "form_group": "space-y-6 (24px)",
+    "label_input": "space-y-2 (8px)",
+    "option_grid": "gap-3 (12px)",
+    "table_cell": "py-3 px-3 (12px)",
+    "modal_padding": "p-6 (24px) + mx-4 (16px)",
+    "card_inner_separator": "space-y-3/4 + border-t/border-b"
+  },
+  "typography": {
+    "font_family": "Inter, system-ui, sans-serif",
+    "font_loaded": false,
+    "effective_font": "system-ui del SO",
+    "sizes": {
+      "text-xs": "12px",
+      "text-sm": "14px",
+      "text-base": "16px",
+      "text-lg": "18px",
+      "text-xl": "20px",
+      "text-2xl": "24px",
+      "text-3xl": "30px"
+    },
+    "weights": {
+      "font-medium": 500,
+      "font-semibold": 600,
+      "font-bold": 700
+    },
+    "special": {
+      "placa_input": "font-mono font-bold tracking-widest uppercase",
+      "recibo_impreso": "Courier New monospace 12px, ancho 80mm",
+      "card_labels": "uppercase tracking-wider"
+    }
+  },
+  "shadows": {
+    "cards_and_buttons": "shadow-sm",
+    "select_dropdown": "shadow-md",
+    "login_logo": "shadow-lg shadow-brand/20",
+    "modals": "shadow-xl"
+  },
+  "z_index": {
+    "header": "z-40",
+    "modal_overlay": "z-50"
+  },
+  "breakpoints": {
+    "sm": "640px",
+    "md": "768px",
+    "lg": "1024px"
+  },
+  "containers": {
+    "app": "max-w-6xl (1152px)",
+    "registro": "max-w-2xl (672px)",
+    "login": "max-w-sm (384px)",
+    "modals": "max-w-sm / max-w-md / max-w-lg (384/448/512px)"
+  },
+  "sizes": {
+    "header_height": "h-14 (56px)",
+    "input_heights": {
+      "default": "h-10 (40px)",
+      "common": "h-11 (44px)",
+      "primary_form": "h-12 (48px)"
+    },
+    "button_heights": {
+      "sm": "h-9 (36px)",
+      "default": "h-10 (40px)",
+      "lg": "h-11 (44px)",
+      "icon": "h-10 w-10"
+    },
+    "logo_header": "size-8 (32px)",
+    "logo_login": "size-16 (64px)",
+    "icon_chip": "size-8 (32px)",
+    "icon_box_lg": "size-10 (40px)",
+    "vehicle_chip": "size-11 (44px)",
+    "modal_avatar": "size-14 (56px)",
+    "empty_state_icon": "size-10/12 (40/48px)",
+    "badge_dot": "size-1.5 (6px)"
+  },
+  "iconography": {
+    "library": "lucide-react",
+    "default_size": "size-4 (16px)",
+    "target": "íconos 16px en chips 32px para KPIs"
+  }
+}
