@@ -1,32 +1,14 @@
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
 
-from app.core.config import settings
-from app.routers import auth, caja, ingreso, vehiculo
+from app.core.database import engine
 
-# Inicialización de la aplicación FastAPI principal
-app = FastAPI(
-    title="SmartPark Pro API", 
-    version="0.1.0",
-    description="API RESTful para el sistema de parqueaderos."
-)
-
-# Configuración de CORS para permitir conexiones desde el Frontend (React/Electron)
-app.add_middleware(
-  CORSMiddleware,
-  allow_origins=settings.backend_cors_origins,
-  allow_credentials=True,
-  allow_methods=["*"],
-  allow_headers=["*"],
-)
+app = FastAPI()
 
 
-app.include_router(auth.router)
-app.include_router(caja.router)
-app.include_router(ingreso.router)
-app.include_router(vehiculo.router)
+@app.get("/")
+def root():
+    with engine.connect() as connection:
+        connection.execute(text("SELECT 1"))
 
-
-@app.get("/health", tags=["Base"])
-async def health_check() -> dict[str, str]:
-  return {"status": "ok"}
+    return {"message": "Conexión exitosa"}
