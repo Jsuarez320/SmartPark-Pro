@@ -1,15 +1,6 @@
 import { CheckCircle, X, Printer, AlertCircle } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
-
-export interface RespuestaRegistro {
-  mensaje: string;
-  id: string;
-  estado: string;
-  placa: string;
-  tipo: string;
-  horaIngreso: string;
-  total?: number;
-}
+import type { RespuestaRegistro } from "../types";
 
 interface AlertaRegistroProps {
   open: boolean;

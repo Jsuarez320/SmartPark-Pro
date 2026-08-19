@@ -1,6 +1,6 @@
 import { createBrowserRouter, Navigate } from "react-router-dom";
-import { AppLayout } from "@/layout/AppLayout";
-import { HomePage } from "@/layout/HomePage";
+import { AppLayout } from "@/routes/AppLayout";
+import { HomePage } from "@/routes/HomePage";
 import { LoginPage } from "@/modules/auth";
 import { RegistroPage } from "@/modules/registro";
 import { VehiculosPage } from "@/modules/vehiculos";
@@ -8,7 +8,7 @@ import { CajaPage } from "@/modules/caja";
 import { ConfiguracionPage } from "@/modules/configuracion";
 import { PagoPage } from "@/modules/receipt";
 import { DashboardPage } from "@/modules/dashboard";
-import { RoleGuard } from "@/shared/components/RoleGuard";
+import { RoleGuard } from "@/routes/RoleGuard";
 
 export const router = createBrowserRouter([
   {

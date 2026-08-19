@@ -1,5 +1,5 @@
 import { api } from "@/shared/api/api";
-import type { RegistroFormState, PrecioResponse, RegistroResponse } from "../registro.types";
+import type { RegistroFormState, PrecioResponse, RegistroResponse } from "../types";
 
 export async function calcularPrecio(data: Partial<RegistroFormState>): Promise<PrecioResponse> {
   const { data: res } = await api.post<PrecioResponse>("/vehiculos/calcular-precio", data);

@@ -1,11 +1,9 @@
-import { useState, useEffect } from "react";
 import { Loader2, Car } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/components/ui/select";
 import { useRegistro } from "../hooks/useRegistro";
 import { AlertaRegistro } from "./AlertaRegistro";
-import { calcularPrecio } from "../services/registro.service";
 
 export function RegistroPage() {
   const {
@@ -18,27 +16,11 @@ export function RegistroPage() {
     envio,
     respuesta,
     alertaAbierta,
+    precio,
+    calculando,
     registrar,
     cerrarAlerta,
   } = useRegistro();
-
-  const [precio, setPrecio] = useState<number | null>(null);
-  const [calculando, setCalculando] = useState(false);
-
-  useEffect(() => {
-    const obtenerPrecio = async () => {
-      setCalculando(true);
-      try {
-        const res = await calcularPrecio({ tipo, mensualidad, pagoDiario, diaEspecial });
-        setPrecio(res.monto);
-      } catch {
-        setPrecio(null);
-      } finally {
-        setCalculando(false);
-      }
-    };
-    obtenerPrecio();
-  }, [tipo, mensualidad, pagoDiario, diaEspecial]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

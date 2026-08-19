@@ -1,39 +1,20 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import { Car, Eye, EyeOff, Loader2 } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
-import { useAuthStore, isAdminRole } from "@/stores/authStore";
+import { useLoginPage } from "../hooks/useLoginPage";
 
 export function LoginPage() {
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-
-  const login = useAuthStore((s) => s.login);
-  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
-  const loading = useAuthStore((s) => s.loading);
-  const error = useAuthStore((s) => s.error);
-  const userRole = useAuthStore((s) => s.user?.role);
-  const clearError = useAuthStore((s) => s.clearError);
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    if (!isAuthenticated) return;
-    navigate(isAdminRole(userRole) ? "/dashboard" : "/", { replace: true });
-  }, [isAuthenticated, navigate, userRole]);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    clearError();
-
-    if (!username || !password) {
-      useAuthStore.setState({ error: "Ingrese usuario y contraseña" });
-      return;
-    }
-
-    await login(username, password);
-  };
+  const {
+    username,
+    password,
+    showPassword,
+    setShowPassword,
+    loading,
+    error,
+    handleSubmit,
+    handleUsernameChange,
+    handlePasswordChange,
+  } = useLoginPage();
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
@@ -61,10 +42,7 @@ export function LoginPage() {
               </label>
               <Input
                 value={username}
-                onChange={(e) => {
-                  setUsername(e.target.value);
-                  if (error) clearError();
-                }}
+                onChange={(e) => handleUsernameChange(e.target.value)}
                 placeholder="Ingrese su usuario"
                 className="h-11"
                 disabled={loading}
@@ -81,10 +59,7 @@ export function LoginPage() {
                 <Input
                   type={showPassword ? "text" : "password"}
                   value={password}
-                  onChange={(e) => {
-                    setPassword(e.target.value);
-                    if (error) clearError();
-                  }}
+                  onChange={(e) => handlePasswordChange(e.target.value)}
                   placeholder="Ingrese su contraseña"
                   className="h-11 pr-10"
                   disabled={loading}

@@ -1,7 +1,6 @@
-import { useState } from "react";
-import type { RespuestaRegistro } from "../components/AlertaRegistro";
-import type { TipoVehiculoRegistro } from "../registro.types";
-import { registrarEntrada } from "../services/registro.service";
+import { useState, useEffect } from "react";
+import type { RespuestaRegistro, TipoVehiculoRegistro } from "../types";
+import { registrarEntrada, calcularPrecio } from "../services/registro.service";
 
 export function useRegistro() {
   const [placa, setPlaca] = useState("");
@@ -13,6 +12,23 @@ export function useRegistro() {
   const [envio, setEnvio] = useState(false);
   const [respuesta, setRespuesta] = useState<RespuestaRegistro | null>(null);
   const [alertaAbierta, setAlertaAbierta] = useState(false);
+  const [precio, setPrecio] = useState<number | null>(null);
+  const [calculando, setCalculando] = useState(false);
+
+  useEffect(() => {
+    const obtenerPrecio = async () => {
+      setCalculando(true);
+      try {
+        const res = await calcularPrecio({ tipo, mensualidad, pagoDiario, diaEspecial });
+        setPrecio(res.monto);
+      } catch {
+        setPrecio(null);
+      } finally {
+        setCalculando(false);
+      }
+    };
+    obtenerPrecio();
+  }, [tipo, mensualidad, pagoDiario, diaEspecial]);
 
   const limpiar = () => {
     setPlaca("");
@@ -86,6 +102,8 @@ export function useRegistro() {
     envio,
     respuesta,
     alertaAbierta,
+    precio,
+    calculando,
     registrar,
     cerrarAlerta,
   };
