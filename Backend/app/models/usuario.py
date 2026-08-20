@@ -28,7 +28,7 @@ class Usuario(Base):
             String, nullable=False
     )
     es_admin: Mapped[bool] = mapped_column(
-        Boolean, nullable=False, default=True
+        Boolean, nullable=False, default=False
     )
     activo: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=True
