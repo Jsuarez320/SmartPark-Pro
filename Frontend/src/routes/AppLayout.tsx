@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
-import { Header } from "@/layout/Header";
+import { Header } from "@/routes/Header";
 import { useAuthStore } from "@/stores/authStore";
 
 export function AppLayout() {

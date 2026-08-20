@@ -1,12 +1,5 @@
 import { api } from "@/shared/api/api";
-
-export interface LoginResponse {
-  access_token: string;
-  token_type: string;
-  user_id: string;
-  nombre: string;
-  es_admin: boolean;
-}
+import type { LoginResponse } from "../types";
 
 export async function loginRequest(username: string, password: string): Promise<LoginResponse> {
   const formData = new FormData();

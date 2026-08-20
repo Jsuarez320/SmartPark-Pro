@@ -1,14 +1,13 @@
-import asyncio
 from logging.config import fileConfig
 
 from alembic import context
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
-from sqlalchemy.ext.asyncio import async_engine_from_config
+from sqlalchemy import create_engine
 
 from app import models  # noqa: F401  # Importa todos los modelos para registrar la metadata
 from app.core.config import settings
-from app.core.database import Base
+from app.core.database import Base, DATABASE_URL
 
 config = context.config
 
@@ -21,7 +20,7 @@ target_metadata = Base.metadata
 def run_migrations_offline() -> None:
     """Genera las migraciones en modo offline (sin conectar a la BD)."""
     context.configure(
-        url=settings.database_url,
+        url=DATABASE_URL,
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
@@ -38,25 +37,17 @@ def do_run_migrations(connection: Connection) -> None:
         context.run_migrations()
 
 
-async def run_async_migrations() -> None:
-    """Ejecuta las migraciones online usando el engine asíncrono de la app."""
-    section = config.get_section(config.config_ini_section, {})
-    section["sqlalchemy.url"] = settings.database_url
-
-    connectable = async_engine_from_config(
-        section,
-        prefix="sqlalchemy.",
+def run_migrations_online() -> None:
+    """Ejecuta las migraciones online usando el engine síncrono de la app."""
+    connectable = create_engine(
+        DATABASE_URL,
         poolclass=pool.NullPool,
     )
 
-    async with connectable.connect() as connection:
-        await connection.run_sync(do_run_migrations)
+    with connectable.connect() as connection:
+        do_run_migrations(connection)
 
-    await connectable.dispose()
-
-
-def run_migrations_online() -> None:
-    asyncio.run(run_async_migrations())
+    connectable.dispose()
 
 
 if context.is_offline_mode():

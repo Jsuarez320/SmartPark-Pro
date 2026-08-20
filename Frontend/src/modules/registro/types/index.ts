@@ -20,3 +20,13 @@ export interface RegistroResponse {
   total?: number;
   mensaje: string;
 }
+
+export interface RespuestaRegistro {
+  mensaje: string;
+  id: string;
+  estado: string;
+  placa: string;
+  tipo: string;
+  horaIngreso: string;
+  total?: number;
+}
