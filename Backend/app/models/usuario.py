@@ -19,10 +19,10 @@ class Usuario(Base):
         String(100), nullable=False
     )
     email: Mapped[str] = mapped_column(
-            String(150), nullable=False
+            String(150), nullable=False, unique=True
     )
     username: Mapped[str] = mapped_column(
-            String(60), nullable=False
+            String(60), nullable=False, unique=True
     )
     password_hash: Mapped[str] = mapped_column(
             String, nullable=False
