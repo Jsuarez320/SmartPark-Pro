@@ -1,3 +1,5 @@
+import hashlib
+import secrets
 import uuid
 from datetime import datetime, timedelta, timezone
 
@@ -25,3 +27,14 @@ def crear_access_token(user_id: str, es_admin: bool) -> str:
         "type": "access",
     }
     return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+
+
+def generar_refresh_token() -> str:
+    # 384 bits de entropía: no necesita un hash costoso tipo bcrypt.
+    return secrets.token_urlsafe(48)
+
+
+def hash_refresh_token(token: str) -> str:
+    # SHA-256 basta: el token ya tiene alta entropía propia, el hash solo
+    # protege contra uso directo si la DB se filtra.
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()

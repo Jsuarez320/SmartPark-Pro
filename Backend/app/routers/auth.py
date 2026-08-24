@@ -1,14 +1,24 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.schemas.auth import Token
-from app.services.auth_service import autenticar_usuario
+from app.core.rate_limit import limiter, LOGIN_RATE_LIMIT
+from app.schemas.auth import (
+    LogoutRequest,
+    RefreshTokenRequest,
+    RefreshTokenResponse,
+    Token,
+)
+from app.services.auth_service import (
+    autenticar_usuario,
+    renovar_refresh_token,
+    revocar_refresh_token,
+)
 
 # TEMPORAL — solo para validar Fase 1, borrar después de probar
-from typing import Annotated
-from fastapi import Depends
 from app.core.deps import get_current_user, require_role
 from app.models.usuario import Usuario
 
@@ -25,7 +35,9 @@ def read_current_user_admin(current_user: Annotated[Usuario, Depends(require_rol
 
 
 @router.post("/login", response_model=Token)
+@limiter.limit(LOGIN_RATE_LIMIT)
 def login(
+    request: Request,
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db),
 ):
@@ -38,7 +50,32 @@ def login(
         )
     return Token(
         access_token=result.access_token,
+        refresh_token=result.refresh_token,
         user_id=result.user_id,
         nombre=result.nombre,
         es_admin=result.es_admin,
     )
+
+
+@router.post("/refresh", response_model=RefreshTokenResponse)
+def refresh(body: RefreshTokenRequest, db: Session = Depends(get_db)):
+    result = renovar_refresh_token(db, body.refresh_token)
+    if result is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Refresh token inválido, expirado o revocado",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    return RefreshTokenResponse(
+        access_token=result.access_token,
+        refresh_token=result.refresh_token,
+        user_id=result.user_id,
+        nombre=result.nombre,
+        es_admin=result.es_admin,
+    )
+
+
+@router.post("/logout")
+def logout(body: LogoutRequest, db: Session = Depends(get_db)):
+    revocar_refresh_token(db, body.refresh_token)
+    return {"msg": "Sesión cerrada"}
