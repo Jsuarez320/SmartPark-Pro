@@ -1,7 +1,7 @@
 """fix es_admin default to false
 
 Revision ID: 279a423f71ce
-Revises: 
+Revises: c4d75ff938ea
 Create Date: 2026-08-19 20:50:43.792994
 
 """
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision: str = '279a423f71ce'
-down_revision: Union[str, None] = None
+down_revision: Union[str, None] = 'c4d75ff938ea'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
