@@ -1,53 +1,28 @@
 services:
-  db:
-    image: postgres:16-alpine
-    container_name: smartpark_db
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-      POSTGRES_DB: ${DB_NAME}
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
   backend:
     build:
       context: ./Backend
       dockerfile: Dockerfile
-    container_name: smartpark_backend
-    restart: unless-stopped
     env_file:
-      - .env
+      - ./Backend/.env       # carga TODO el .env, incluyendo DATABASE_HOST=localhost
+    environment:
+      - DATABASE_HOST=db     # esta línea pisa el valor anterior
+      - DATABASE_PORT=5432    # ← agregar esta línea
+    depends_on:
+      - db
     ports:
       - "8000:8000"
-    depends_on:
-      db:
-        condition: service_healthy
-    volumes:
-      - ./Backend:/app
 
-  frontend:
-    build:
-      context: ./Frontend
-      dockerfile: Dockerfile
-    container_name: smartpark_frontend
-    restart: unless-stopped
+  db:
+    image: postgres:16
     environment:
-      - VITE_API_URL=http://localhost:8000
+      - POSTGRES_USER=${DATABASE_USER}
+      - POSTGRES_PASSWORD=${DATABASE_PASSWORD}
+      - POSTGRES_DB=${DATABASE_NAME}
     ports:
-      - "5173:5173"
-    depends_on:
-      - backend
+      - "5433:5432"
     volumes:
-      - ./Frontend:/app
-      - /app/node_modules
+      - pgdata:/var/lib/postgresql/data
 
 volumes:
-  postgres_data:
+  pgdata:
