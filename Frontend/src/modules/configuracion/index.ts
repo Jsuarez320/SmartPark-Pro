@@ -1,3 +1,3 @@
-export type { TarifaEntry, Tarifas, ConfiguracionEstado } from "./configuracion.types";
+export type { Tarifa, Tarifas, ConfiguracionData } from "./configuracion.types";
 export { ConfiguracionPage } from "./components/ConfiguracionPage";
 export { useConfiguracion } from "./hooks/useConfiguracion";

@@ -1,82 +1,100 @@
 import { useState, useEffect } from "react";
-import type { RespuestaRegistro, TipoVehiculoRegistro } from "../types";
-import { registrarEntrada, calcularPrecio } from "../services/registro.service";
+import { formatHora, getApiError } from "@/shared/utils/formatters";
+import type {
+  ConsultaPlaca,
+  PlanIngreso,
+  PrecioResponse,
+  RespuestaRegistro,
+  TipoVehiculoRegistro,
+} from "../types";
+import { registrarEntrada, calcularPrecio, consultarPlaca } from "../services/registro.service";
 
 export function useRegistro() {
+  const [tarjeta, setTarjeta] = useState("");
   const [placa, setPlaca] = useState("");
   const [tipo, setTipo] = useState<TipoVehiculoRegistro>("carro");
   const [marca, setMarca] = useState("");
-  const [mensualidad, setMensualidad] = useState(false);
-  const [pagoDiario, setPagoDiario] = useState(false);
-  const [diaEspecial, setDiaEspecial] = useState(false);
+  const [plan, setPlan] = useState<PlanIngreso>("bloque_15min");
+  const [consulta, setConsulta] = useState<ConsultaPlaca | null>(null);
   const [envio, setEnvio] = useState(false);
   const [respuesta, setRespuesta] = useState<RespuestaRegistro | null>(null);
   const [alertaAbierta, setAlertaAbierta] = useState(false);
-  const [precio, setPrecio] = useState<number | null>(null);
+  const [precio, setPrecio] = useState<PrecioResponse | null>(null);
   const [calculando, setCalculando] = useState(false);
 
+  // Tarifa del plan elegido (viene de la API)
   useEffect(() => {
-    const obtenerPrecio = async () => {
-      setCalculando(true);
-      try {
-        const res = await calcularPrecio({ tipo, mensualidad, pagoDiario, diaEspecial });
-        setPrecio(res.monto);
-      } catch {
-        setPrecio(null);
-      } finally {
-        setCalculando(false);
-      }
+    let cancelado = false;
+    setCalculando(true);
+    calcularPrecio({ tipo, plan })
+      .then((res) => !cancelado && setPrecio(res))
+      .catch(() => !cancelado && setPrecio(null))
+      .finally(() => !cancelado && setCalculando(false));
+    return () => {
+      cancelado = true;
     };
-    obtenerPrecio();
-  }, [tipo, mensualidad, pagoDiario, diaEspecial]);
+  }, [tipo, plan]);
+
+  // Si la placa ya existe: toma su tipo y avisa si tiene membresía vigente
+  useEffect(() => {
+    const p = placa.trim();
+    if (p.length < 3) {
+      setConsulta(null);
+      return;
+    }
+    let cancelado = false;
+    const timer = setTimeout(async () => {
+      try {
+        const res = await consultarPlaca(p);
+        if (cancelado) return;
+        setConsulta(res);
+        if (res.registrado && res.tipo) setTipo(res.tipo);
+      } catch {
+        if (!cancelado) setConsulta(null);
+      }
+    }, 350);
+    return () => {
+      cancelado = true;
+      clearTimeout(timer);
+    };
+  }, [placa]);
 
   const limpiar = () => {
+    setTarjeta("");
     setPlaca("");
     setTipo("carro");
     setMarca("");
-    setMensualidad(false);
-    setPagoDiario(false);
-    setDiaEspecial(false);
+    setPlan("bloque_15min");
+    setConsulta(null);
   };
 
+  const puedeRegistrar = tarjeta.trim() !== "" && placa.trim() !== "";
+
   const registrar = async () => {
-    if (!placa) return;
+    const codigoTarjeta = tarjeta.trim();
+    if (!codigoTarjeta || !placa.trim()) return;
 
     setEnvio(true);
-
     try {
-      const response = await registrarEntrada({
-        placa,
-        tipo,
-        marca,
-        mensualidad,
-        pagoDiario,
-        diaEspecial,
+      const res = await registrarEntrada({ tarjeta: codigoTarjeta, placa: placa.trim(), tipo, marca, plan });
+      setRespuesta({
+        mensaje: res.mensaje,
+        id: res.id,
+        estado: res.estado,
+        tarjeta: res.tarjeta,
+        placa: res.placa,
+        tipo: res.tipo,
+        plan: res.membresia ? `${res.plan} (membresía)` : res.plan,
+        horaIngreso: formatHora(res.horaIngreso),
       });
-
-      const res: RespuestaRegistro = {
-        mensaje: `Vehículo con placa ${placa} ingresado correctamente`,
-        id: response.id,
-        estado: response.estado,
-        placa,
-        tipo,
-        horaIngreso: new Date().toLocaleTimeString("es-CO", {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
-        total: response.total,
-      };
-
-      setRespuesta(res);
       setAlertaAbierta(true);
       limpiar();
-    } catch (err: any) {
-      const mensaje =
-        err?.response?.data?.detail || err?.message || "Error al registrar vehículo";
+    } catch (err) {
       setRespuesta({
-        mensaje,
+        mensaje: getApiError(err, "Error al registrar vehículo"),
         id: "",
         estado: "error",
+        tarjeta: codigoTarjeta,
         placa,
         tipo,
         horaIngreso: "",
@@ -93,17 +111,18 @@ export function useRegistro() {
   };
 
   return {
+    tarjeta, setTarjeta,
     placa, setPlaca,
     tipo, setTipo,
     marca, setMarca,
-    mensualidad, setMensualidad,
-    pagoDiario, setPagoDiario,
-    diaEspecial, setDiaEspecial,
+    plan, setPlan,
+    consulta,
     envio,
     respuesta,
     alertaAbierta,
     precio,
     calculando,
+    puedeRegistrar,
     registrar,
     cerrarAlerta,
   };

@@ -1,12 +1,15 @@
-import { X, Printer, CheckCircle, Banknote, CreditCard, Smartphone } from "lucide-react";
+import { X, Printer, CheckCircle, Banknote, CreditCard, Smartphone, Loader2 } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
+import { formatDuracion, formatHora } from "@/shared/utils/formatters";
 import { useReceipt } from "../hooks/useReceipt";
 
 interface PagoModalProps {
   open: boolean;
   onClose: () => void;
-  placa?: string;
+  ingresoId: string | null;
+  /** Se llama tras registrar la salida para refrescar el listado de patio. */
+  onPagado?: () => void;
 }
 
 const montosRapidos = [5000, 10000, 20000, 50000];
@@ -17,9 +20,12 @@ const metodos = [
   { value: "nequi" as const, label: "Nequi", icon: Smartphone },
 ];
 
-export function PagoModal({ open, onClose, placa = "ABC123" }: PagoModalProps) {
+export function PagoModal({ open, onClose, ingresoId, onPagado }: PagoModalProps) {
   const {
+    vehiculo,
+    cargandoVehiculo,
     cargando,
+    error,
     pagado,
     datosRecibo,
     metodoPago,
@@ -30,15 +36,17 @@ export function PagoModal({ open, onClose, placa = "ABC123" }: PagoModalProps) {
     pagar,
     imprimir,
     reiniciar,
-  } = useReceipt();
+  } = useReceipt(open ? ingresoId : null);
 
   if (!open) return null;
 
-  const total = datosRecibo?.total ?? 0;
+  const total = pagado ? (datosRecibo?.total ?? 0) : (vehiculo?.valor ?? 0);
+  const sinCobro = total === 0;
   const cambio = Math.max(0, montoRecibido - total);
+  const faltaEfectivo = metodoPago === "efectivo" && !sinCobro && montoRecibido < total;
 
   const handlePagar = async () => {
-    await pagar(placa);
+    if (await pagar()) onPagado?.();
   };
 
   const handleCerrar = () => {
@@ -53,7 +61,7 @@ export function PagoModal({ open, onClose, placa = "ABC123" }: PagoModalProps) {
         if (e.target === e.currentTarget) handleCerrar();
       }}
     >
-      <div className="relative w-full max-w-lg mx-4 rounded-2xl border border-border bg-surface p-6 shadow-xl">
+      <div className="relative w-full max-w-lg mx-4 max-h-[92vh] overflow-y-auto rounded-2xl border border-border bg-surface p-6 shadow-xl">
         <button
           onClick={handleCerrar}
           className="absolute right-4 top-4 text-text-subtle hover:text-text-muted transition-colors"
@@ -69,93 +77,125 @@ export function PagoModal({ open, onClose, placa = "ABC123" }: PagoModalProps) {
               <p className="text-sm text-text-muted mt-1">Registre la salida del vehículo</p>
             </div>
 
-            <div className="rounded-xl bg-background border border-border p-4 space-y-2">
-              <div className="flex items-center justify-between">
-                <p className="text-xs text-text-muted uppercase tracking-wider font-semibold">Vehículo</p>
-                <span className="text-xs text-text-muted">Ticket: TKT-{placa}</span>
-              </div>
-              <p className="text-2xl font-bold text-text-primary">{placa}</p>
-              <div className="flex gap-4 text-sm text-text-muted">
-                <span>Ingreso: 18:30</span>
-                <span>Tiempo: 1h 30min</span>
-              </div>
-              <p className="text-3xl font-bold text-brand mt-2">
-                ${total.toLocaleString()}
-              </p>
-            </div>
-
-            <div className="space-y-3">
-              <p className="text-sm font-medium text-text-secondary">Método de pago</p>
-              <div className="grid grid-cols-3 gap-2">
-                {metodos.map((m) => (
-                  <button
-                    key={m.value}
-                    onClick={() => setMetodoPago(m.value)}
-                    className={`flex flex-col items-center gap-1.5 rounded-xl border py-3 px-2 text-sm font-medium transition-all ${
-                      metodoPago === m.value
-                        ? "border-brand bg-brand-light text-brand shadow-sm"
-                        : "border-border text-text-muted hover:border-brand/50 hover:text-text-secondary"
-                    }`}
-                  >
-                    <m.icon className="size-5" />
-                    {m.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {metodoPago === "efectivo" && (
-              <div className="space-y-3 rounded-xl bg-background border border-border p-4">
-                <div>
-                  <label className="text-sm font-medium text-text-secondary">Monto recibido</label>
-                  <Input
-                    type="number"
-                    value={montoRecibido || ""}
-                    onChange={(e) => setMontoRecibido(Number(e.target.value))}
-                    placeholder="$0"
-                    className="h-12 mt-1.5 text-lg font-bold"
-                    min={0}
-                  />
-                </div>
-
-                <div className="flex gap-2 flex-wrap">
-                  {montosRapidos.map((m) => (
-                    <button
-                      key={m}
-                      onClick={() => agregarMonto(m)}
-                      className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-text-secondary hover:bg-background hover:border-brand/50 transition-colors"
-                    >
-                      +${m.toLocaleString()}
-                    </button>
-                  ))}
-                  <button
-                    onClick={() => setMontoRecibido(total + cambio)}
-                    className="rounded-lg border border-brand px-4 py-2 text-sm font-medium text-brand hover:bg-brand-light transition-colors"
-                  >
-                    Exacto ${total.toLocaleString()}
-                  </button>
-                </div>
-
-                {cambio > 0 && (
-                  <div className="rounded-xl bg-green-50 border border-green-100 p-3">
-                    <p className="text-sm text-green-600 font-medium">Cambio</p>
-                    <p className="text-xl font-bold text-green-700">${cambio.toLocaleString()}</p>
-                  </div>
-                )}
+            {cargandoVehiculo && (
+              <div className="flex items-center justify-center gap-2 py-10 text-sm text-text-muted">
+                <Loader2 className="size-4 animate-spin" /> Calculando cobro...
               </div>
             )}
 
-            <Button
-              onClick={handlePagar}
-              disabled={cargando || (metodoPago === "efectivo" && montoRecibido <= 0)}
-              className="w-full h-12 bg-brand hover:bg-brand-hover text-white font-bold text-base shadow-sm"
-            >
-              {cargando ? (
-                <span className="flex items-center gap-2">Procesando...</span>
-              ) : (
-                `Cobrar $${total.toLocaleString()}`
-              )}
-            </Button>
+            {error && !vehiculo && (
+              <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
+                {error}
+              </div>
+            )}
+
+            {vehiculo && (
+              <>
+                <div className="rounded-xl bg-background border border-border p-4 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs text-text-muted uppercase tracking-wider font-semibold">Vehículo</p>
+                    <span className="text-xs font-mono text-text-muted">Tarjeta: {vehiculo.tarjeta}</span>
+                  </div>
+                  <p className="text-2xl font-bold text-text-primary">{vehiculo.placa}</p>
+                  <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-text-muted">
+                    <span>Ingreso: {formatHora(vehiculo.fechaIngreso)}</span>
+                    <span>Tiempo: {formatDuracion(vehiculo.minutos)}</span>
+                    <span>Plan: {vehiculo.plan}</span>
+                  </div>
+                  <p className="text-3xl font-bold text-brand mt-2">${total.toLocaleString("es-CO")}</p>
+                  {vehiculo.membresia && (
+                    <p className="text-sm text-green-700">Membresía vigente: no hay cobro por tiempo.</p>
+                  )}
+                </div>
+
+                {!sinCobro && (
+                  <>
+                    <div className="space-y-3">
+                      <p className="text-sm font-medium text-text-secondary">Método de pago</p>
+                      <div className="grid grid-cols-3 gap-2">
+                        {metodos.map((m) => (
+                          <button
+                            key={m.value}
+                            onClick={() => setMetodoPago(m.value)}
+                            className={`flex flex-col items-center gap-1.5 rounded-xl border py-3 px-2 text-sm font-medium transition-all ${
+                              metodoPago === m.value
+                                ? "border-brand bg-brand-light text-brand shadow-sm"
+                                : "border-border text-text-muted hover:border-brand/50 hover:text-text-secondary"
+                            }`}
+                          >
+                            <m.icon className="size-5" />
+                            {m.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {metodoPago === "efectivo" && (
+                      <div className="space-y-3 rounded-xl bg-background border border-border p-4">
+                        <div>
+                          <label className="text-sm font-medium text-text-secondary">Monto recibido</label>
+                          <Input
+                            type="number"
+                            value={montoRecibido || ""}
+                            onChange={(e) => setMontoRecibido(Number(e.target.value))}
+                            placeholder="$0"
+                            className="h-12 mt-1.5 text-lg font-bold"
+                            min={0}
+                          />
+                        </div>
+
+                        <div className="flex gap-2 flex-wrap">
+                          {montosRapidos.map((m) => (
+                            <button
+                              key={m}
+                              onClick={() => agregarMonto(m)}
+                              className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-text-secondary hover:bg-background hover:border-brand/50 transition-colors"
+                            >
+                              +${m.toLocaleString("es-CO")}
+                            </button>
+                          ))}
+                          <button
+                            onClick={() => setMontoRecibido(total)}
+                            className="rounded-lg border border-brand px-4 py-2 text-sm font-medium text-brand hover:bg-brand-light transition-colors"
+                          >
+                            Exacto ${total.toLocaleString("es-CO")}
+                          </button>
+                        </div>
+
+                        {cambio > 0 && (
+                          <div className="rounded-xl bg-green-50 border border-green-100 p-3">
+                            <p className="text-sm text-green-600 font-medium">Cambio</p>
+                            <p className="text-xl font-bold text-green-700">${cambio.toLocaleString("es-CO")}</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </>
+                )}
+
+                {error && (
+                  <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+                    {error}
+                  </div>
+                )}
+
+                <Button
+                  onClick={handlePagar}
+                  disabled={cargando || faltaEfectivo}
+                  className="w-full h-12 bg-brand hover:bg-brand-hover text-white font-bold text-base shadow-sm"
+                >
+                  {cargando ? (
+                    <span className="flex items-center gap-2">
+                      <Loader2 className="size-4 animate-spin" /> Procesando...
+                    </span>
+                  ) : sinCobro ? (
+                    "Registrar salida"
+                  ) : (
+                    `Cobrar $${total.toLocaleString("es-CO")}`
+                  )}
+                </Button>
+              </>
+            )}
           </div>
         )}
 
@@ -165,10 +205,10 @@ export function PagoModal({ open, onClose, placa = "ABC123" }: PagoModalProps) {
               <div className="mx-auto mb-3 flex size-14 items-center justify-center rounded-full bg-green-100">
                 <CheckCircle className="size-7 text-green-600" />
               </div>
-              <h2 className="text-xl font-bold text-text-primary">Pago Exitoso</h2>
-              <p className="text-sm text-text-muted mt-1">
-                Ticket {datosRecibo.ticket}
-              </p>
+              <h2 className="text-xl font-bold text-text-primary">
+                {datosRecibo.total > 0 ? "Pago Exitoso" : "Salida Registrada"}
+              </h2>
+              <p className="text-sm text-text-muted mt-1">Recibo {datosRecibo.ticket}</p>
             </div>
 
             <div className="rounded-xl bg-background border border-border p-5 font-mono text-sm space-y-2">
@@ -179,7 +219,7 @@ export function PagoModal({ open, onClose, placa = "ABC123" }: PagoModalProps) {
               </div>
 
               <div className="flex justify-between">
-                <span className="text-text-muted">Ticket</span>
+                <span className="text-text-muted">Recibo</span>
                 <span className="font-bold text-text-primary">{datosRecibo.ticket}</span>
               </div>
               <div className="flex justify-between">
@@ -187,8 +227,12 @@ export function PagoModal({ open, onClose, placa = "ABC123" }: PagoModalProps) {
                 <span className="font-bold text-text-primary">{datosRecibo.placa}</span>
               </div>
               <div className="flex justify-between">
+                <span className="text-text-muted">Tarjeta</span>
+                <span>{datosRecibo.tarjeta}</span>
+              </div>
+              <div className="flex justify-between">
                 <span className="text-text-muted">Tipo</span>
-                <span>{datosRecibo.tipo}</span>
+                <span className="capitalize">{datosRecibo.tipo}</span>
               </div>
 
               <div className="border-t border-dashed border-border pt-2 mt-2 space-y-1">
@@ -208,12 +252,12 @@ export function PagoModal({ open, onClose, placa = "ABC123" }: PagoModalProps) {
 
               <div className="border-t border-dashed border-border pt-2 mt-2 space-y-1">
                 <div className="flex justify-between">
-                  <span className="text-text-muted">Tarifa</span>
-                  <span>${datosRecibo.tarifa.toLocaleString()}</span>
+                  <span className="text-text-muted">Plan</span>
+                  <span>{datosRecibo.plan}</span>
                 </div>
                 <div className="flex justify-between text-lg font-bold">
                   <span>TOTAL</span>
-                  <span className="text-brand">${datosRecibo.total.toLocaleString()}</span>
+                  <span className="text-brand">${datosRecibo.total.toLocaleString("es-CO")}</span>
                 </div>
               </div>
 

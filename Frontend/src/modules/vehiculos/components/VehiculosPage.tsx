@@ -1,7 +1,16 @@
-import { Search, CalendarDays, AlertTriangle, Clock, ShieldCheck, RefreshCw, Car, Bike } from "lucide-react";
+import { useState } from "react";
+import { Search, CalendarDays, AlertTriangle, Clock, ShieldCheck, Car, Bike, Plus, Loader2 } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { useVehiculos } from "../hooks/useVehiculos";
+import { MembresiaModal } from "./MembresiaModal";
+
+const estadoMensual: Record<string, { label: string; clase: string }> = {
+  vencido: { label: "Vencido", clase: "bg-red-50 text-destructive" },
+  por_vencer: { label: "Por vencer", clase: "bg-yellow-50 text-yellow-700" },
+  alerta: { label: "Alerta", clase: "bg-orange-50 text-orange-600" },
+  activo: { label: "Activo", clase: "bg-green-50 text-green-700" },
+};
 
 export function VehiculosPage() {
   const {
@@ -12,7 +21,11 @@ export function VehiculosPage() {
     mensuales,
     totalMensuales,
     statsMensuales,
+    cargando,
+    error,
+    recargar,
   } = useVehiculos();
+  const [membresiaAbierta, setMembresiaAbierta] = useState(false);
 
   return (
     <div className="space-y-6">
@@ -23,7 +36,31 @@ export function VehiculosPage() {
             Administra la información de todos los vehículos registrados
           </p>
         </div>
+        <Button
+          onClick={() => setMembresiaAbierta(true)}
+          className="bg-brand hover:bg-brand-hover text-white font-semibold gap-2 shadow-sm"
+        >
+          <Plus className="size-4" />
+          Nueva Membresía
+        </Button>
       </div>
+
+      {error && (
+        <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive" role="alert">
+          {error}
+        </div>
+      )}
+      {cargando && (
+        <div className="flex items-center gap-2 text-sm text-text-muted">
+          <Loader2 className="size-4 animate-spin" /> Cargando...
+        </div>
+      )}
+
+      <MembresiaModal
+        open={membresiaAbierta}
+        onClose={() => setMembresiaAbierta(false)}
+        onCreada={recargar}
+      />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="rounded-xl border border-border bg-surface p-5 shadow-sm border-l-4 border-l-brand">
@@ -110,7 +147,7 @@ export function VehiculosPage() {
       <div className="rounded-xl border border-border bg-surface p-6 shadow-sm">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-lg font-bold text-text-primary">Clientes Mensuales</h2>
-          <span className="text-sm text-text-muted">{totalMensuales} activos</span>
+          <span className="text-sm text-text-muted">{totalMensuales} vigentes</span>
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
@@ -157,6 +194,7 @@ export function VehiculosPage() {
                   <tr className="border-b border-border">
                     <th className="text-left py-3 px-3 font-medium text-text-muted">Placa</th>
                     <th className="text-left py-3 px-3 font-medium text-text-muted">Propietario</th>
+                    <th className="text-left py-3 px-3 font-medium text-text-muted">Plan</th>
                     <th className="text-left py-3 px-3 font-medium text-text-muted">Vencimiento</th>
                     <th className="text-left py-3 px-3 font-medium text-text-muted">Estado</th>
                   </tr>
@@ -166,8 +204,15 @@ export function VehiculosPage() {
                     <tr key={m.placa} className="border-b border-border-light hover:bg-background transition-colors">
                       <td className="py-3 px-3 font-bold text-text-primary">{m.placa}</td>
                       <td className="py-3 px-3 text-text-secondary">{m.propietario || "—"}</td>
+                      <td className="py-3 px-3 text-text-secondary">{m.plan}</td>
                       <td className="py-3 px-3 text-text-secondary">{m.vencimiento}</td>
-                      <td className="py-3 px-3">{m.estado}</td>
+                      <td className="py-3 px-3">
+                        <span
+                          className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${estadoMensual[m.estado].clase}`}
+                        >
+                          {estadoMensual[m.estado].label}
+                        </span>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
