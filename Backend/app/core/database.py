@@ -15,6 +15,8 @@ DATABASE_URL = (
 engine = create_engine(
     DATABASE_URL,
     echo=settings.DEBUG,
+    # Dia/semana/mes de los reportes y CURRENT_DATE se evaluan en hora de Colombia
+    connect_args={"options": "-c timezone=America/Bogota"},
 )
 
 SessionLocal = sessionmaker(

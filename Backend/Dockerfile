@@ -16,5 +16,5 @@ COPY . .
 # 6. Puerto que expone FastAPI/uvicorn
 EXPOSE 8000
 
-# 7. Comando de arranque
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# 7. Comando de arranque: aplica las migraciones pendientes y levanta la API
+CMD ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"]

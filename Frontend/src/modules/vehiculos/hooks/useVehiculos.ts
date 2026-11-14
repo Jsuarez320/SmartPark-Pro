@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { getApiError } from "@/shared/utils/formatters";
 import type { Vehiculo, Mensual, EstadisticasVehiculos } from "../vehiculos.types";
 import { obtenerVehiculos, obtenerMensuales, obtenerEstadisticas } from "../services/vehiculos.service";
 
@@ -7,24 +8,30 @@ export function useVehiculos() {
   const [vehiculos, setVehiculos] = useState<Vehiculo[]>([]);
   const [mensuales, setMensuales] = useState<Mensual[]>([]);
   const [stats, setStats] = useState<EstadisticasVehiculos>({ totalPlacas: 0, totalMensuales: 0 });
+  const [cargando, setCargando] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const cargar = useCallback(async () => {
+    try {
+      const [v, m, s] = await Promise.all([
+        obtenerVehiculos(),
+        obtenerMensuales(),
+        obtenerEstadisticas(),
+      ]);
+      setVehiculos(v);
+      setMensuales(m);
+      setStats(s);
+      setError(null);
+    } catch (err) {
+      setError(getApiError(err, "No se pudieron cargar los vehículos"));
+    } finally {
+      setCargando(false);
+    }
+  }, []);
 
   useEffect(() => {
-    const cargar = async () => {
-      try {
-        const [v, m, s] = await Promise.all([
-          obtenerVehiculos(),
-          obtenerMensuales(),
-          obtenerEstadisticas(),
-        ]);
-        setVehiculos(v);
-        setMensuales(m);
-        setStats(s);
-      } catch {
-        // Error silencioso — la UI muestra estado vacío
-      }
-    };
     cargar();
-  }, []);
+  }, [cargar]);
 
   const vehiculosFiltrados = searchQuery
     ? vehiculos.filter((v) => v.placa.includes(searchQuery.toUpperCase()))
@@ -43,5 +50,8 @@ export function useVehiculos() {
       alerta: mensuales.filter((m) => m.estado === "alerta").length,
       activos: mensuales.filter((m) => m.estado === "activo").length,
     },
+    cargando,
+    error,
+    recargar: cargar,
   };
 }

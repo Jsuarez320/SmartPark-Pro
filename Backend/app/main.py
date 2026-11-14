@@ -6,7 +6,13 @@ from slowapi.errors import RateLimitExceeded
 
 from app.core.database import engine
 from app.core.rate_limit import limiter
+from app.core.errors import NegocioError
 from app.routers.auth import router as auth_router
+from app.routers.caja import router as caja_router
+from app.routers.configuracion import router as configuracion_router
+from app.routers.dashboard import router as dashboard_router
+from app.routers.membresias import router as membresias_router
+from app.routers.vehiculos import router as vehiculos_router
 
 app = FastAPI()
 
@@ -22,6 +28,11 @@ def rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded):
         },
     )
 
+@app.exception_handler(NegocioError)
+def negocio_error_handler(request: Request, exc: NegocioError):
+    return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
+
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://127.0.0.1:5173", "http://localhost:5173"],
@@ -31,6 +42,11 @@ app.add_middleware(
 )
 
 app.include_router(auth_router)
+app.include_router(vehiculos_router)
+app.include_router(membresias_router)
+app.include_router(caja_router)
+app.include_router(configuracion_router)
+app.include_router(dashboard_router)
 
 @app.get("/")
 def root():

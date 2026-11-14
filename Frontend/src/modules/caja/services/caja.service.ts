@@ -1,8 +1,21 @@
 import { api } from "@/shared/api/api";
-import type { ResumenCaja, DesgloseIngresos, Transaccion, Retiro, PeriodoFiltro } from "../caja.types";
+import type { DesgloseIngresos, PeriodoFiltro, Transaccion, TurnoActual, TurnoHistorial } from "../caja.types";
 
-export async function obtenerResumen(): Promise<ResumenCaja> {
-  const { data } = await api.get<ResumenCaja>("/caja/resumen");
+export async function obtenerTurno(): Promise<TurnoActual | null> {
+  const { data } = await api.get<TurnoActual | null>("/caja/turno");
+  return data;
+}
+
+export async function abrirTurno(montoInicial: number): Promise<TurnoActual> {
+  const { data } = await api.post<TurnoActual>("/caja/turno/abrir", { montoInicial });
+  return data;
+}
+
+export async function cerrarTurno(montoContado: number, notas?: string): Promise<TurnoHistorial> {
+  const { data } = await api.post<TurnoHistorial>("/caja/turno/cerrar", {
+    montoContado,
+    notas: notas?.trim() || null,
+  });
   return data;
 }
 
@@ -16,11 +29,7 @@ export async function obtenerTransacciones(periodo: PeriodoFiltro): Promise<Tran
   return data;
 }
 
-export async function obtenerRetiros(): Promise<Retiro[]> {
-  const { data } = await api.get<Retiro[]>("/caja/retiros");
+export async function obtenerHistorialTurnos(): Promise<TurnoHistorial[]> {
+  const { data } = await api.get<TurnoHistorial[]>("/caja/turnos");
   return data;
-}
-
-export async function entregarDinero(monto: number): Promise<void> {
-  await api.post("/caja/entregar", { monto });
 }

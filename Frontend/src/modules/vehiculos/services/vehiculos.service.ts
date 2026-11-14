@@ -1,5 +1,12 @@
 import { api } from "@/shared/api/api";
-import type { Vehiculo, Mensual, EstadisticasVehiculos } from "../vehiculos.types";
+import type {
+  EstadisticasVehiculos,
+  MembresiaCreada,
+  Mensual,
+  NuevaMembresia,
+  PlanMembresia,
+  Vehiculo,
+} from "../vehiculos.types";
 
 export async function obtenerVehiculos(): Promise<Vehiculo[]> {
   const { data } = await api.get<Vehiculo[]>("/vehiculos");
@@ -19,4 +26,21 @@ export async function obtenerMensuales(): Promise<Mensual[]> {
 export async function obtenerEstadisticas(): Promise<EstadisticasVehiculos> {
   const { data } = await api.get<EstadisticasVehiculos>("/vehiculos/stats");
   return data;
+}
+
+export async function obtenerPrecioMembresia(
+  tipo: "carro" | "moto",
+  plan: PlanMembresia,
+): Promise<number> {
+  const { data } = await api.post<{ monto: number }>("/vehiculos/calcular-precio", { tipo, plan });
+  return data.monto;
+}
+
+export async function contratarMembresia(data: NuevaMembresia): Promise<MembresiaCreada> {
+  const { data: res } = await api.post<MembresiaCreada>("/membresias", {
+    ...data,
+    telefono: data.telefono?.trim() || null,
+    marca: data.marca?.trim() || null,
+  });
+  return res;
 }

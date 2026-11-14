@@ -1,53 +1,79 @@
-import { useState, useCallback } from "react";
-import type { DatosPago, MetodoPago } from "../receipt.types";
-import { imprimirRecibo } from "../services/receipt.service";
+import { useState, useCallback, useEffect } from "react";
+import { formatDuracion, formatHora, getApiError } from "@/shared/utils/formatters";
+import type { DatosPago, MetodoPago, VehiculoPatio } from "../receipt.types";
+import { imprimirRecibo, obtenerVehiculoPatio, procesarPago } from "../services/receipt.service";
 
-interface PagoState {
-  cargando: boolean;
-  pagado: boolean;
-  datosRecibo: DatosPago | null;
-}
-
-export function useReceipt() {
-  const [state, setState] = useState<PagoState>({
-    cargando: false,
-    pagado: false,
-    datosRecibo: null,
-  });
+/**
+ * Cobro de la salida de un vehículo. Al abrirse el modal (ingresoId definido)
+ * consulta el cobro actualizado a la API; el total definitivo lo calcula el backend.
+ */
+export function useReceipt(ingresoId: string | null) {
+  const [vehiculo, setVehiculo] = useState<VehiculoPatio | null>(null);
+  const [cargandoVehiculo, setCargandoVehiculo] = useState(false);
+  const [cargando, setCargando] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [datosRecibo, setDatosRecibo] = useState<DatosPago | null>(null);
   const [metodoPago, setMetodoPago] = useState<MetodoPago>("efectivo");
   const [montoRecibido, setMontoRecibido] = useState(0);
 
-  const pagar = useCallback(async (placa: string) => {
-    setState((prev) => ({ ...prev, cargando: true }));
-
-    await new Promise((r) => setTimeout(r, 800));
-
-    const datos: DatosPago = {
-      ticket: `TKT-${Date.now().toString(36).toUpperCase()}`,
-      placa,
-      tipo: "Carro",
-      horaIngreso: new Date(Date.now() - 5400000).toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" }),
-      horaSalida: new Date().toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" }),
-      tiempoTranscurrido: "1h 30min",
-      tarifa: 3200,
-      total: Math.max(3200, montoRecibido || 3200),
-      metodoPago,
-      fecha: new Date().toLocaleDateString("es-CO", {
-        weekday: "long", day: "numeric", month: "long", year: "numeric",
-      }),
+  useEffect(() => {
+    if (!ingresoId) return;
+    let cancelado = false;
+    setCargandoVehiculo(true);
+    setError(null);
+    obtenerVehiculoPatio(ingresoId)
+      .then((v) => !cancelado && setVehiculo(v))
+      .catch((err) => !cancelado && setError(getApiError(err, "No se pudo consultar el vehículo")))
+      .finally(() => !cancelado && setCargandoVehiculo(false));
+    return () => {
+      cancelado = true;
     };
+  }, [ingresoId]);
 
-    setState({ cargando: false, pagado: true, datosRecibo: datos });
-  }, [metodoPago, montoRecibido]);
+  const pagar = useCallback(async () => {
+    if (!ingresoId || !vehiculo) return false;
+    setCargando(true);
+    setError(null);
+    try {
+      const res = await procesarPago({
+        ingresoId,
+        metodoPago: vehiculo.valor > 0 ? metodoPago : undefined,
+      });
+      setDatosRecibo({
+        ticket: res.ticket,
+        placa: res.placa,
+        tarjeta: res.tarjeta,
+        tipo: res.tipo,
+        plan: res.plan,
+        horaIngreso: formatHora(res.horaIngreso),
+        horaSalida: formatHora(res.horaSalida),
+        tiempoTranscurrido: formatDuracion(res.minutos),
+        bloques: res.bloques,
+        valorBloque: res.valorBloque,
+        topeAplicado: res.topeAplicado,
+        total: res.total,
+        metodoPago: res.metodoPago ?? "Sin cobro",
+        fecha: new Date(res.horaSalida).toLocaleDateString("es-CO", {
+          weekday: "long", day: "numeric", month: "long", year: "numeric",
+        }),
+      });
+      return true;
+    } catch (err) {
+      setError(getApiError(err, "No se pudo registrar la salida"));
+      return false;
+    } finally {
+      setCargando(false);
+    }
+  }, [ingresoId, vehiculo, metodoPago]);
 
   const imprimir = useCallback(() => {
-    if (state.datosRecibo) {
-      imprimirRecibo(state.datosRecibo);
-    }
-  }, [state.datosRecibo]);
+    if (datosRecibo) imprimirRecibo(datosRecibo);
+  }, [datosRecibo]);
 
   const reiniciar = useCallback(() => {
-    setState({ cargando: false, pagado: false, datosRecibo: null });
+    setVehiculo(null);
+    setDatosRecibo(null);
+    setError(null);
     setMetodoPago("efectivo");
     setMontoRecibido(0);
   }, []);
@@ -57,7 +83,12 @@ export function useReceipt() {
   }, []);
 
   return {
-    ...state,
+    vehiculo,
+    cargandoVehiculo,
+    cargando,
+    error,
+    pagado: datosRecibo !== null,
+    datosRecibo,
     metodoPago,
     setMetodoPago,
     montoRecibido,
