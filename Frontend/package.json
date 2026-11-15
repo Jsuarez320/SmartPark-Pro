@@ -5,10 +5,11 @@
   "type": "module",
   "main": "dist-electron/main.js",
   "scripts": {
-    "dev": "concurrently -k \"vite --host 127.0.0.1\" \"wait-on tcp:5173 && electron .\"",
-    "build": "tsc --noEmit && vite build && tsc -p tsconfig.electron.json",
+    "build:electron": "tsc -p tsconfig.electron.json",
+    "dev": "pnpm build:electron && concurrently -k \"vite --host 127.0.0.1\" \"wait-on tcp:5173 && electron .\"",
+    "build": "tsc --noEmit && vite build && pnpm build:electron",
     "preview": "vite preview --host 127.0.0.1",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.electron.json --noEmit"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.15",
