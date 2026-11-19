@@ -1,6 +1,7 @@
 import { app, BrowserWindow } from "electron";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { registerPrinterIpc } from "./printing/ipc.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -28,7 +29,10 @@ function createWindow() {
   void window.loadFile(path.join(__dirname, "../dist/index.html"));
 }
 
-void app.whenReady().then(createWindow);
+void app.whenReady().then(() => {
+  registerPrinterIpc();
+  createWindow();
+});
 
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") {

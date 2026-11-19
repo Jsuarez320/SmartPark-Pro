@@ -6,3 +6,6 @@ __pycache__/
 .git/
 .pytest_cache/
 scripts_validacion_fase3.py
+vendor
+.git
+storage/logs

@@ -3,6 +3,7 @@ import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { useConfiguracion } from "../hooks/useConfiguracion";
 import type { Tarifa } from "../configuracion.types";
+import { ImpresoraSection } from "./ImpresoraSection";
 
 export function ConfiguracionPage() {
   const {
@@ -122,6 +123,8 @@ export function ConfiguracionPage() {
           </p>
         </div>
       </div>
+
+      <ImpresoraSection />
     </div>
   );
 }
