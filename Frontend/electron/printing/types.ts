@@ -8,32 +8,53 @@
 export type TipoVehiculo = "carro" | "moto";
 export type ModoImpresion = "usb" | "dump";
 
-/** Datos de una factura/tiquete listos para imprimir. Fechas en ISO 8601. */
-export interface FacturaImpresion {
+/** Una fila de la tabla de conceptos cobrados. Dinero en pesos COP enteros. */
+export interface ItemRecibo {
+  descripcion: string;
+  cantidad: number;
+  valorUnitario: number;
+  /** Valor del IVA de la fila (no porcentaje). 0 si no aplica. */
+  iva: number;
+  total: number;
+}
+
+/** Datos del recibo ya listos para imprimir (sin lógica de negocio). Fechas en ISO 8601. */
+export interface ReciboData {
+  /** Número de factura, ej. "SP-000123". */
   numero: string;
   fechaEmision: string;
-  placa: string;
-  tipoVehiculo: TipoVehiculo;
+  /** Opcional: "01 CAJERO 01". Si falta, la línea no se imprime. */
+  cajero?: string;
+  /** Tiquete / tarjeta del ingreso. */
+  tiquete?: string;
   horaEntrada: string;
   horaSalida: string;
-  /** Ya formateado por quien llama, ej. "2 h 15 min". */
-  tiempoTotal: string;
-  /** Ej. "Bloque 15 min" o "Día completo". */
-  tarifaAplicada: string;
-  /** Opcional, ej. "6 × $1.000". */
-  detalleCobro?: string;
-  /** Opcional: tarjeta/ficha asignada al vehículo. */
-  tarjeta?: string;
-  /** Pesos COP enteros, >= 0. */
+  /** Si no hay cliente se imprime 222222222222 / CONSUMIDOR FINAL. */
+  cedula?: string;
+  nombre?: string;
+  tipoVehiculo: TipoVehiculo;
+  placa: string;
+  marca?: string;
+  /** Una fila por concepto cobrado (servicio, recargo, mensualidad...). */
+  items: ItemRecibo[];
+  subtotal: number;
+  descuento: number;
   total: number;
-  metodoPago: string;
+  metodoPago?: string;
 }
+
+/** Alias histórico. */
+export type FacturaImpresion = ReciboData;
 
 export interface EncabezadoParqueadero {
   nombre: string;
   nit: string;
+  /** Varias líneas (una por renglón), ej. "LUNES A VIERNES 6 AM A 8 PM". */
+  horario: string;
   direccion: string;
   telefono: string;
+  /** Resolución de numeración DIAN (opcional, varias líneas). */
+  resolucionDian: string;
 }
 
 export interface PrinterConfig {

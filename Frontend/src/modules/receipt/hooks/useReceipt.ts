@@ -1,8 +1,40 @@
 import { useState, useCallback, useEffect } from "react";
 import { formatDuracion, formatHora, getApiError } from "@/shared/utils/formatters";
 import { usePrinter } from "@/shared/printing/usePrinter";
-import type { DatosPago, MetodoPago, VehiculoPatio } from "../receipt.types";
+import type { FacturaImpresion } from "@/shared/printing/types";
+import type { DatosPago, MetodoPago, SalidaResponse, VehiculoPatio } from "../receipt.types";
 import { obtenerVehiculoPatio, procesarPago } from "../services/receipt.service";
+
+/**
+ * Un concepto por cobro: bloques × valor del bloque cuando cuadra con el total; si no
+ * (tope diario, mínimo, membresía) una sola fila por el total. El backend aún no envía
+ * recargos ni mensualidades por separado: cuando lo haga, aquí se mapea una fila por concepto.
+ */
+function armarRecibo(res: SalidaResponse): FacturaImpresion {
+  const cuadra = res.bloques > 0 && res.bloques * res.valorBloque === res.total && !res.topeAplicado;
+  return {
+    numero: res.ticket,
+    fechaEmision: res.horaSalida,
+    tiquete: res.tarjeta || undefined,
+    horaEntrada: res.horaIngreso,
+    horaSalida: res.horaSalida,
+    tipoVehiculo: res.tipo,
+    placa: res.placa,
+    items: [
+      {
+        descripcion: res.topeAplicado ? "SERVICIO PARQUEADERO (TOPE DIARIO)" : "SERVICIO PARQUEADERO",
+        cantidad: cuadra ? res.bloques : 1,
+        valorUnitario: cuadra ? res.valorBloque : res.total,
+        iva: 0,
+        total: res.total,
+      },
+    ],
+    subtotal: res.total,
+    descuento: 0,
+    total: res.total,
+    metodoPago: etiquetaMetodo(res.metodoPago),
+  };
+}
 
 /** "efectivo" → "Efectivo" (el recibo no usa CSS para capitalizar). */
 function etiquetaMetodo(metodo?: string | null): string {
@@ -63,22 +95,7 @@ export function useReceipt(ingresoId: string | null) {
         fecha: new Date(res.horaSalida).toLocaleDateString("es-CO", {
           weekday: "long", day: "numeric", month: "long", year: "numeric",
         }),
-        factura: {
-          numero: res.ticket,
-          fechaEmision: res.horaSalida,
-          placa: res.placa,
-          tipoVehiculo: res.tipo,
-          tarjeta: res.tarjeta || undefined,
-          horaEntrada: res.horaIngreso,
-          horaSalida: res.horaSalida,
-          tiempoTotal: formatDuracion(res.minutos),
-          tarifaAplicada: res.plan,
-          detalleCobro: res.topeAplicado
-            ? "Tope diario aplicado"
-            : `${res.bloques} × $${res.valorBloque.toLocaleString("es-CO")}`,
-          total: res.total,
-          metodoPago: etiquetaMetodo(res.metodoPago),
-        },
+        factura: armarRecibo(res),
       });
       return true;
     } catch (err) {

@@ -187,7 +187,31 @@ export function ImpresoraSection() {
             </Campo>
           </div>
 
-          <Campo etiqueta="Pie de página">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Campo etiqueta="Horario (una línea por renglón)">
+              <textarea
+                value={borrador.encabezado.horario}
+                maxLength={200}
+                rows={3}
+                placeholder={"LUNES A VIERNES 6 AM A 8 PM\nSÁBADOS 7 AM A 2 PM"}
+                onChange={(e) => cambiarEncabezado({ horario: e.target.value })}
+                className={CLASE_TEXTAREA}
+              />
+            </Campo>
+            <Campo etiqueta="Resolución de numeración DIAN (opcional)">
+              <textarea
+                value={borrador.encabezado.resolucionDian}
+                maxLength={300}
+                rows={3}
+                placeholder="Resolución No. ... del ... Prefijo SP del 1 al 50000"
+                onChange={(e) => cambiarEncabezado({ resolucionDian: e.target.value })}
+                className={CLASE_TEXTAREA}
+              />
+            </Campo>
+          </div>
+          <p className="-mt-3 text-xs text-text-muted">Los campos del encabezado que dejes vacíos no se imprimen.</p>
+
+          <Campo etiqueta="Mensaje de pie (se centra y salta de línea por palabras)">
             <textarea
               value={borrador.piePagina}
               maxLength={300}

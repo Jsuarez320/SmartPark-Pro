@@ -2,7 +2,7 @@ import { construirTicket } from "./ticketBuilder.js";
 import { guardarConfig, leerConfig } from "./printerConfig.js";
 import { FileDumpProvider } from "./providers/fileDumpProvider.js";
 import { WinspoolProvider } from "./providers/winspoolProvider.js";
-import type { FacturaImpresion, PrinterConfig, PrinterProvider } from "./types.js";
+import type { PrinterConfig, PrinterProvider, ReciboData } from "./types.js";
 
 /** Elige el provider según la config y la plataforma. Un EscPosRedProvider se añadiría aquí. */
 export function elegirProvider(config: PrinterConfig, userDataDir: string): PrinterProvider {
@@ -18,23 +18,56 @@ export function elegirProvider(config: PrinterConfig, userDataDir: string): Prin
   }
 }
 
-/** Factura ficticia para la prueba; el texto con tildes y ñ va en el pie. */
-function facturaDePrueba(): FacturaImpresion {
-  const ahora = new Date();
-  const hace = new Date(ahora.getTime() - 75 * 60_000);
+/** Datos de ejemplo de la maqueta (también valida tildes, ñ y cifras largas). */
+export function reciboDePrueba(): ReciboData {
+  const salida = new Date();
+  salida.setHours(11, 32, 0, 0);
+  const entrada = new Date(salida);
+  entrada.setHours(9, 57, 0, 0);
   return {
-    numero: "SP-000001",
-    tarjeta: "0042",
-    detalleCobro: "6 × $1.000",
-    fechaEmision: ahora.toISOString(),
-    placa: "TEST123",
-    tipoVehiculo: "carro",
-    horaEntrada: hace.toISOString(),
-    horaSalida: ahora.toISOString(),
-    tiempoTotal: "1 h 25 min",
-    tarifaAplicada: "Bloque 15 min",
-    total: 1000,
+    numero: "SP-000123",
+    fechaEmision: salida.toISOString(),
+    cajero: "01 CAJERO 01",
+    tiquete: "729360330190957-01",
+    horaEntrada: entrada.toISOString(),
+    horaSalida: salida.toISOString(),
+    cedula: "222222222222",
+    nombre: "CONSUMIDOR FINAL",
+    tipoVehiculo: "moto",
+    placa: "XZO75",
+    marca: "HONDA",
+    items: [
+      { descripcion: "SERVICIO PARQUEADERO", cantidad: 1, valorUnitario: 1600, iva: 0, total: 1600 },
+      { descripcion: "RECARGO", cantidad: 1, valorUnitario: 1600, iva: 0, total: 1600 },
+    ],
+    subtotal: 3200,
+    descuento: 0,
+    total: 3200,
     metodoPago: "Efectivo",
+  };
+}
+
+/** El encabezado de la prueba usa el configurado y rellena con ejemplos lo que esté vacío. */
+function conEncabezadoDeEjemplo(config: PrinterConfig): PrinterConfig {
+  const ejemplo = {
+    nombre: "PARQUEADERO SMART PARK",
+    nit: "900.123.456-7",
+    horario: "LUNES A VIERNES 6 AM A 8 PM\nSÁBADOS 7 AM A 2 PM",
+    direccion: "CL 12 # 1 - 62 LA PLAYA",
+    telefono: "320 436 8215",
+    resolucionDian: "",
+  };
+  const e = config.encabezado;
+  return {
+    ...config,
+    encabezado: {
+      nombre: e.nombre.trim() || ejemplo.nombre,
+      nit: e.nit.trim() || ejemplo.nit,
+      horario: e.horario.trim() || ejemplo.horario,
+      direccion: e.direccion.trim() || ejemplo.direccion,
+      telefono: e.telefono.trim() || ejemplo.telefono,
+      resolucionDian: e.resolucionDian,
+    },
   };
 }
 
@@ -48,7 +81,7 @@ export function crearPrinterService(userDataDir: string) {
     return siguiente;
   };
 
-  async function imprimir(factura: FacturaImpresion, config: PrinterConfig): Promise<void> {
+  async function imprimir(factura: ReciboData, config: PrinterConfig): Promise<void> {
     const buffer = await construirTicket(factura, config);
     await elegirProvider(config, userDataDir).imprimir(buffer);
   }
@@ -56,17 +89,10 @@ export function crearPrinterService(userDataDir: string) {
   return {
     getConfig: (): PrinterConfig => leerConfig(userDataDir),
     setConfig: (raw: unknown): PrinterConfig => guardarConfig(userDataDir, raw),
-    imprimirFactura: (factura: FacturaImpresion) =>
+    imprimirFactura: (factura: ReciboData) =>
       enSerie(() => imprimir(factura, leerConfig(userDataDir))),
     imprimirPrueba: () =>
-      enSerie(() => {
-        const config = leerConfig(userDataDir);
-        const conTexto: PrinterConfig = {
-          ...config,
-          piePagina: `Señor, añadió café en Bogotá\n${config.piePagina}`.trim(),
-        };
-        return imprimir(facturaDePrueba(), conTexto);
-      }),
+      enSerie(() => imprimir(reciboDePrueba(), conEncabezadoDeEjemplo(leerConfig(userDataDir)))),
   };
 }
 

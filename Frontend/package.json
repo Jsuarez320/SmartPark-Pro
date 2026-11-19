@@ -9,7 +9,8 @@
     "dev": "pnpm build:electron && concurrently -k \"vite --host 127.0.0.1\" \"wait-on tcp:5173 && electron .\"",
     "build": "tsc --noEmit && vite build && pnpm build:electron",
     "preview": "vite preview --host 127.0.0.1",
-    "typecheck": "tsc --noEmit && tsc -p tsconfig.electron.json --noEmit"
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.electron.json --noEmit",
+    "test:printing": "tsc -p tsconfig.electron.json && node --test \"dist-electron/printing/*.test.js\""
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.15",

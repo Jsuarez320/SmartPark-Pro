@@ -1,9 +1,20 @@
 import { ThermalPrinter, PrinterTypes } from "node-thermal-printer";
 import type { CharacterSet } from "node-thermal-printer";
-import type { FacturaImpresion, PrinterConfig } from "./types.js";
-
-const ANCHO = 48; // 72 mm imprimibles con fuente A
-const ANCHO_DOBLE = ANCHO / 2; // con doble ancho cada carácter ocupa 2 columnas
+import {
+  COLUMNAS,
+  COLUMNAS_DOBLE,
+  formatearCOP,
+  formatearFecha,
+  formatearHora24,
+  itemRows,
+  labelValue,
+  labelValuePair,
+  limpiar,
+  tableRow,
+  twoColumns,
+  wrapCentered,
+} from "./formato.js";
+import type { PrinterConfig, ReciboData } from "./types.js";
 
 /**
  * Por qué NO pasamos `interface` al constructor:
@@ -16,7 +27,7 @@ const ANCHO_DOBLE = ANCHO / 2; // con doble ancho cada carácter ocupa 2 columna
 export function crearConstructor(characterSet: string): ThermalPrinter {
   return new ThermalPrinter({
     type: PrinterTypes.EPSON,
-    width: ANCHO,
+    width: COLUMNAS,
     // Configurable: se ajusta contra la página de autoprueba de la impresora.
     // Lanza si la página de códigos no existe para EPSON.
     characterSet: characterSet as CharacterSet,
@@ -25,91 +36,106 @@ export function crearConstructor(characterSet: string): ThermalPrinter {
   } as ConstructorParameters<typeof ThermalPrinter>[0]);
 }
 
-/** Quita caracteres de control: evita que un texto del usuario inyecte comandos ESC/POS. */
-function limpiar(texto: string): string {
-  return texto.replace(/[\x00-\x1F\x7F]/g, " ").trim();
+/**
+ * Una línea ya maquetada.
+ *  - "normal": tamaño normal             -> 48 columnas (GS ! 0x00)  [cuerpo]
+ *  - "alto":   doble alto, ancho normal  -> 48 columnas (GS ! 0x01)  [nombre del negocio]
+ *  - "grande": doble ancho + doble alto  -> 24 columnas (GS ! 0x11)
+ * `negrita` (ESC E 1/0) se aplica solo a esa línea; el resto del recibo va en texto normal.
+ * Las líneas con `centrado` se centran en la impresora (ESC a 1); el resto va a la izquierda
+ * y ya trae su relleno de espacios calculado.
+ */
+export interface Linea {
+  texto: string;
+  modo: "normal" | "alto" | "grande";
+  centrado?: boolean;
+  negrita?: boolean;
 }
 
-function dosDigitos(n: number): string {
-  return String(n).padStart(2, "0");
-}
+export const columnasDe = (l: Linea): number => (l.modo === "grande" ? COLUMNAS_DOBLE : COLUMNAS);
 
-const DIAS = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"];
-const MESES = [
-  "enero", "febrero", "marzo", "abril", "mayo", "junio",
-  "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre",
-];
+const CEDULA_GENERICA = "222222222222";
+const NOMBRE_GENERICO = "CONSUMIDOR FINAL";
 
-/** "jueves, 19 de noviembre de 2026". A mano: no dependemos de los datos ICU de Electron. */
-export function formatearFechaLarga(iso: string): string {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return limpiar(iso);
-  return `${DIAS[d.getDay()]}, ${d.getDate()} de ${MESES[d.getMonth()]} de ${d.getFullYear()}`;
-}
+/** Maqueta del recibo como lista de líneas. Pura (sin ESC/POS): fácil de probar. */
+export function componerRecibo(r: ReciboData, config: PrinterConfig): Linea[] {
+  const lineas: Linea[] = [];
+  const izq = (textos: string[], negrita = false) =>
+    textos.forEach((texto) => lineas.push({ texto, modo: "normal", negrita }));
+  const centro = (texto: string, negrita = false, modo: Linea["modo"] = "normal") =>
+    wrapCentered(texto, COLUMNAS).forEach((t) => lineas.push({ texto: t, modo, centrado: true, negrita }));
+  const sep = () => izq(["-".repeat(COLUMNAS)]);
+  const { encabezado: e } = config;
 
-/** "05:30 p. m." (ASCII puro: sin NBSP, que CP858 no tiene y saldría como "?"). */
-export function formatearHora(iso: string): string {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return limpiar(iso);
-  const h12 = d.getHours() % 12 || 12;
-  return `${dosDigitos(h12)}:${dosDigitos(d.getMinutes())} ${d.getHours() < 12 ? "a. m." : "p. m."}`;
-}
+  // --- Encabezado: cada campo vacío omite su línea ---
+  if (limpiar(e.nombre)) centro(e.nombre, true, "alto");
+  if (limpiar(e.nit)) centro(`NIT ${e.nit}`);
+  if (limpiar(e.horario)) centro(e.horario);
+  if (limpiar(e.direccion)) centro(e.direccion);
+  if (limpiar(e.telefono)) centro(e.telefono);
+  if (limpiar(e.resolucionDian)) centro(e.resolucionDian);
+  izq([""]);
 
-/** COP sin decimales: "$1.000". A mano por la misma razón (sin Intl/NBSP). */
-export function formatearCOP(valor: number): string {
-  const entero = Math.round(valor);
-  const conPuntos = String(Math.abs(entero)).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-  return `${entero < 0 ? "-" : ""}$${conPuntos}`;
-}
+  // --- Datos de la factura ---
+  izq(twoColumns("FACTURA DE VENTA", r.numero, COLUMNAS), true);
+  izq(["SISTEMA POS"], true);
+  if (r.cajero && limpiar(r.cajero)) izq(labelValue("Cajero No", r.cajero, COLUMNAS));
+  if (r.tiquete && limpiar(r.tiquete)) izq(labelValue("Tiquete No", r.tiquete, COLUMNAS));
+  izq(labelValuePair(["Entrada", formatearFecha(r.horaEntrada)], ["Hora", formatearHora24(r.horaEntrada)], COLUMNAS));
+  izq(labelValuePair(["Salida", formatearFecha(r.horaSalida)], ["Hora", formatearHora24(r.horaSalida)], COLUMNAS));
+  izq(labelValue("Cédula", limpiar(r.cedula ?? "") || CEDULA_GENERICA, COLUMNAS));
+  izq(labelValue("Nombre", limpiar(r.nombre ?? "") || NOMBRE_GENERICO, COLUMNAS));
+  izq(
+    labelValuePair(
+      ["Tipo Veh.", r.tipoVehiculo === "moto" ? "MOTO" : "CARRO"],
+      ["Placa", limpiar(r.placa).toUpperCase()],
+      COLUMNAS,
+    ),
+  );
+  if (r.marca && limpiar(r.marca)) izq(labelValue("Marca", r.marca, COLUMNAS));
+  if (r.metodoPago && limpiar(r.metodoPago)) izq(labelValue("Pago", r.metodoPago, COLUMNAS));
 
-/** Parte un texto por palabras en líneas de `cols` como máximo (una palabra más larga se corta). */
-function envolver(texto: string, cols: number): string[] {
-  const lineas: string[] = [];
-  let actual = "";
-  for (const palabra of limpiar(texto).split(/\s+/).filter(Boolean)) {
-    for (let w = palabra; w.length > 0; w = w.slice(cols)) {
-      const trozo = w.slice(0, cols);
-      if (!actual) actual = trozo;
-      else if (actual.length + 1 + trozo.length <= cols) actual += " " + trozo;
-      else {
-        lineas.push(actual);
-        actual = trozo;
-      }
-    }
-  }
-  if (actual) lineas.push(actual);
+  // --- Tabla de ítems: una fila por concepto cobrado ---
+  sep();
+  izq([tableRow(["CANT.", "V. UNIT", "IVA", "TOTAL"])], true);
+  sep();
+  for (const item of r.items) izq(itemRows(item));
+
+  // --- Totales (bloque alineado a la derecha, desde la columna 22) ---
+  const sangria = " ".repeat(21);
+  const derecha = (etiqueta: string, valor: number) =>
+    izq(twoColumns(etiqueta, formatearCOP(valor), COLUMNAS - sangria.length).map((l) => sangria + l), true);
+  derecha("SUBTOTAL", r.subtotal);
+  derecha("DESCUENTO", r.descuento);
+  twoColumns("TOTAL", formatearCOP(r.total), COLUMNAS_DOBLE).forEach((t) => lineas.push({ texto: t, modo: "grande", negrita: true }));
+  sep();
+
+  // --- Pie configurable ---
+  if (limpiar(config.piePagina)) centro(config.piePagina);
+
   return lineas;
 }
 
-/** Texto centrado que hace salto de línea en vez de cortarse. */
-function centrado(p: ThermalPrinter, texto: string, cols: number): void {
-  p.alignCenter();
-  for (const l of envolver(texto, cols)) p.println(l);
-  p.alignLeft();
-}
-
 /**
- * Fila etiqueta (izq.) / valor (der.) en `cols` columnas. Si no caben en una línea,
- * el valor baja alineado a la derecha: nunca se parte un valor.
+ * Imprime UNA línea y deja el estado limpio: negrita (ESC E 0), tamaño (GS ! 0) y
+ * alineación a la izquierda. Así ningún estilo "contamina" a las líneas siguientes.
+ * Tamaño con GS ! (no ESC !); el primer argumento de setTextSize en la librería es el ANCHO.
  */
-function fila(p: ThermalPrinter, etiqueta: string, valor: string, cols: number): void {
-  const e = limpiar(etiqueta);
-  const v = limpiar(valor);
+function imprimirLinea(p: ThermalPrinter, l: Linea): void {
+  p.bold(l.negrita === true); // ESC E 1 / ESC E 0 antes del texto
+  if (l.modo === "grande") p.setTextSize(1, 1); // GS ! 0x11
+  else if (l.modo === "alto") p.setTextSize(0, 1); // GS ! 0x01
+  else p.setTextSize(0, 0); // GS ! 0x00 (cuerpo)
+  if (l.centrado) p.alignCenter();
+  else p.alignLeft();
+  p.println(l.texto);
+  p.bold(false); // ESC E 0
+  p.setTextSize(0, 0); // GS ! 0x00
   p.alignLeft();
-  if (e.length + 1 + v.length <= cols) {
-    p.println(e + " ".repeat(cols - e.length - v.length) + v);
-    return;
-  }
-  p.println(e);
-  for (const l of envolver(v, cols)) p.println(" ".repeat(Math.max(0, cols - l.length)) + l);
 }
 
-export async function construirTicket(
-  factura: FacturaImpresion,
-  config: PrinterConfig,
-): Promise<Buffer> {
+export async function construirTicket(r: ReciboData, config: PrinterConfig): Promise<Buffer> {
   const p = crearConstructor(config.characterSet);
-  const { encabezado } = config;
 
   // Inicio explícito, ANTES de la página de códigos porque ESC @ la reinicia:
   //   ESC @        reset
@@ -120,74 +146,12 @@ export async function construirTicket(
     Buffer.from([0x1b, 0x40, 0x1b, 0x4d, 0x00, 0x1d, 0x4c, 0x00, 0x00, 0x1d, 0x57, 0x40, 0x02]),
   );
   p.setCharacterSet(config.characterSet as CharacterSet);
+  p.bold(false);
 
-  // Tamaños con GS ! (no ESC !): ESC ! también borra la negrita, GS ! no la toca.
-  // OJO: setTextSize(a, b) de esta librería arma el byte a*16+b y en GS ! el nibble alto es
-  // el ANCHO, así que el primer argumento es el ancho, no el alto.
-  const normal = () => p.setTextSize(0, 0);
-  const altoDoble = () => p.setTextSize(0, 1); // ancho normal, alto doble (48 col.)
-  const grande = () => p.setTextSize(1, 1); // ancho y alto dobles (24 col.)
-  const sep = () => {
-    normal();
-    p.println("-".repeat(ANCHO));
-  };
-  p.bold(true); // ESC E 1: todo el recibo en negrita
+  for (const linea of componerRecibo(r, config)) imprimirLinea(p, linea);
 
-  // --- Encabezado ---
-  grande();
-  centrado(p, "SMART PARK PRO", ANCHO_DOBLE);
-  altoDoble();
-  centrado(p, encabezado.nombre, ANCHO);
-  if (encabezado.nit) centrado(p, `NIT ${encabezado.nit}`, ANCHO);
-  if (encabezado.direccion) centrado(p, encabezado.direccion, ANCHO);
-  if (encabezado.telefono) centrado(p, `Tel. ${encabezado.telefono}`, ANCHO);
-  centrado(p, formatearFechaLarga(factura.fechaEmision), ANCHO);
-  sep();
-
-  // --- Título e identificación ---
-  altoDoble();
-  centrado(p, "RECIBO DE PAGO", ANCHO);
-  fila(p, "Factura", factura.numero, ANCHO);
-  grande(); // la placa va resaltada (24 columnas útiles)
-  fila(p, "Placa", factura.placa.toUpperCase(), ANCHO_DOBLE);
-  altoDoble();
-  if (factura.tarjeta) fila(p, "Tarjeta", factura.tarjeta, ANCHO);
-  fila(p, "Tipo", factura.tipoVehiculo === "moto" ? "Moto" : "Carro", ANCHO);
-  sep();
-
-  // --- Tiempos ---
-  altoDoble();
-  fila(p, "Ingreso", formatearHora(factura.horaEntrada), ANCHO);
-  fila(p, "Salida", formatearHora(factura.horaSalida), ANCHO);
-  fila(p, "Tiempo", factura.tiempoTotal, ANCHO);
-  sep();
-
-  // --- Cobro ---
-  altoDoble();
-  grande();
-  fila(p, "Plan", factura.tarifaAplicada, ANCHO_DOBLE);
-  altoDoble();
-  if (factura.detalleCobro) fila(p, "Detalle", factura.detalleCobro, ANCHO);
-  grande();
-  fila(p, "TOTAL", formatearCOP(factura.total), ANCHO_DOBLE);
-  sep();
-
-  altoDoble();
-  fila(p, "Pago", factura.metodoPago, ANCHO);
-  sep();
-
-  // --- Pie ---
-  altoDoble();
-  const pie = config.piePagina.trim() || "¡Gracias por su preferencia!";
-  for (const linea of pie.split(/\r?\n/)) centrado(p, linea, ANCHO);
-  centrado(p, "SmartPark Pro", ANCHO);
-  normal();
-
-  p.newLine();
-  p.newLine();
-  p.newLine();
-  p.newLine();
-  p.cut();
+  for (let i = 0; i < 4; i++) p.newLine();
+  p.add(Buffer.from([0x1d, 0x56, 0x42, 0x00])); // GS V 66 0: avanza y corta parcialmente
   if (config.abrirCajon) p.openCashDrawer();
 
   const buffer = p.getBuffer();

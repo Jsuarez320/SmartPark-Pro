@@ -1,7 +1,7 @@
 import { app, ipcMain } from "electron";
 import { listarImpresoras } from "./impresoras.js";
 import { crearPrinterService } from "./printerService.js";
-import type { FacturaImpresion, PrinterConfig } from "./types.js";
+import type { ItemRecibo, PrinterConfig, ReciboData } from "./types.js";
 
 /** Nombres de canal. El preload (.cts, sin imports locales) repite estos literales. */
 export const CANALES = {
@@ -41,28 +41,57 @@ function fechaIso(obj: Record<string, unknown>, campo: string): string {
   return v;
 }
 
-export function validarFactura(raw: unknown): FacturaImpresion {
-  if (!esObjeto(raw)) throw new Error("La factura debe ser un objeto.");
-  const { tipoVehiculo, total } = raw;
+function dinero(obj: Record<string, unknown>, campo: string): number {
+  const v = obj[campo];
+  if (typeof v !== "number" || !Number.isFinite(v) || v < 0 || v > 1_000_000_000) {
+    throw new Error(`"${campo}" debe ser un número entre 0 y 1.000.000.000.`);
+  }
+  return Math.round(v);
+}
+
+const MAX_ITEMS = 30;
+
+function validarItem(raw: unknown, n: number): ItemRecibo {
+  if (!esObjeto(raw)) throw new Error(`El ítem ${n + 1} debe ser un objeto.`);
+  const cantidad = raw.cantidad;
+  if (typeof cantidad !== "number" || !Number.isInteger(cantidad) || cantidad < 0 || cantidad > 99_999) {
+    throw new Error(`"cantidad" del ítem ${n + 1} debe ser un entero entre 0 y 99.999.`);
+  }
+  return {
+    descripcion: cadena(raw, "descripcion", 96),
+    cantidad,
+    valorUnitario: dinero(raw, "valorUnitario"),
+    iva: dinero(raw, "iva"),
+    total: dinero(raw, "total"),
+  };
+}
+
+export function validarFactura(raw: unknown): ReciboData {
+  if (!esObjeto(raw)) throw new Error("El recibo debe ser un objeto.");
+  const { tipoVehiculo, items } = raw;
   if (tipoVehiculo !== "carro" && tipoVehiculo !== "moto") {
     throw new Error('"tipoVehiculo" debe ser "carro" o "moto".');
   }
-  if (typeof total !== "number" || !Number.isFinite(total) || total < 0 || total > 1_000_000_000) {
-    throw new Error('"total" debe ser un número entre 0 y 1.000.000.000.');
+  if (!Array.isArray(items) || items.length === 0 || items.length > MAX_ITEMS) {
+    throw new Error(`"items" debe tener entre 1 y ${MAX_ITEMS} conceptos.`);
   }
   return {
     numero: cadena(raw, "numero", 32),
     fechaEmision: fechaIso(raw, "fechaEmision"),
-    placa: cadena(raw, "placa", 12),
-    tipoVehiculo,
+    cajero: opcional(raw, "cajero", 40),
+    tiquete: opcional(raw, "tiquete", 40),
     horaEntrada: fechaIso(raw, "horaEntrada"),
     horaSalida: fechaIso(raw, "horaSalida"),
-    tiempoTotal: cadena(raw, "tiempoTotal", 32),
-    tarifaAplicada: cadena(raw, "tarifaAplicada", 48),
-    detalleCobro: opcional(raw, "detalleCobro", 48),
-    tarjeta: opcional(raw, "tarjeta", 24),
-    total,
-    metodoPago: cadena(raw, "metodoPago", 32),
+    cedula: opcional(raw, "cedula", 20),
+    nombre: opcional(raw, "nombre", 60),
+    tipoVehiculo,
+    placa: cadena(raw, "placa", 12),
+    marca: opcional(raw, "marca", 30),
+    items: items.map(validarItem),
+    subtotal: dinero(raw, "subtotal"),
+    descuento: dinero(raw, "descuento"),
+    total: dinero(raw, "total"),
+    metodoPago: opcional(raw, "metodoPago", 32),
   };
 }
 

@@ -12,12 +12,14 @@ export const CONFIG_POR_DEFECTO: PrinterConfig = {
   characterSet: "PC858_EURO",
   abrirCajon: false,
   encabezado: {
-    nombre: "SmartPark Pro",
+    nombre: "PARQUEADERO SMART PARK",
     nit: "",
+    horario: "",
     direccion: "",
     telefono: "",
+    resolucionDian: "",
   },
-  piePagina: "¡Gracias por su preferencia!",
+  piePagina: "NO SE RESPONDE POR CASCOS U OBJETOS DEJADOS EN EL VEHÍCULO",
 };
 
 function esObjeto(v: unknown): v is Record<string, unknown> {
@@ -63,8 +65,10 @@ export function validarConfig(raw: unknown): PrinterConfig {
     encabezado: {
       nombre: texto(encabezado.nombre, "encabezado.nombre", 48, true),
       nit: texto(encabezado.nit, "encabezado.nit", 48),
+      horario: texto(encabezado.horario, "encabezado.horario", 200),
       direccion: texto(encabezado.direccion, "encabezado.direccion", 96),
       telefono: texto(encabezado.telefono, "encabezado.telefono", 48),
+      resolucionDian: texto(encabezado.resolucionDian, "encabezado.resolucionDian", 300),
     },
     piePagina: texto(piePagina, "piePagina", 300),
   };
