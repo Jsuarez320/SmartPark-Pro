@@ -1,3 +1,6 @@
+vendor
+.git
+storage/logs
 node_modules/
 dist/
 dist-electron/
