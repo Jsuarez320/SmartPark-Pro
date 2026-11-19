@@ -9,6 +9,8 @@ export function crearFacturaEjemplo(): FacturaImpresion {
   const entrada = new Date(salida.getTime() - (2 * 60 + 15) * 60_000);
   return {
     numero: "EJ-000001",
+    tarjeta: "0042",
+    detalleCobro: "9 × $1.000",
     fechaEmision: salida.toISOString(),
     placa: "ABC123",
     tipoVehiculo: "carro",
@@ -16,7 +18,7 @@ export function crearFacturaEjemplo(): FacturaImpresion {
     horaSalida: salida.toISOString(),
     tiempoTotal: "2 h 15 min",
     tarifaAplicada: "Bloque 15 min",
-    total: 12000,
+    total: 9000,
     metodoPago: "Efectivo",
   };
 }

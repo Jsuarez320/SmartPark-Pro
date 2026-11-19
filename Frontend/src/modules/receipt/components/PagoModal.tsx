@@ -35,6 +35,8 @@ export function PagoModal({ open, onClose, ingresoId, onPagado }: PagoModalProps
     agregarMonto,
     pagar,
     imprimir,
+    imprimiendo,
+    errorImpresion,
     reiniciar,
   } = useReceipt(open ? ingresoId : null);
 
@@ -271,9 +273,16 @@ export function PagoModal({ open, onClose, ingresoId, onPagado }: PagoModalProps
               </div>
             </div>
 
+            {errorImpresion && (
+              <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive" role="alert">
+                {errorImpresion}. El cobro ya quedó registrado; puedes reintentar la impresión.
+              </div>
+            )}
+
             <div className="flex gap-3">
               <Button
-                onClick={imprimir}
+                onClick={() => void imprimir()}
+                disabled={imprimiendo}
                 className="flex-1 h-12 bg-brand hover:bg-brand-hover text-white font-semibold gap-2 shadow-sm"
               >
                 <Printer className="size-4" />

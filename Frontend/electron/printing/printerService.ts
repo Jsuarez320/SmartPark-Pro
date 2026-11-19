@@ -1,7 +1,7 @@
 import { construirTicket } from "./ticketBuilder.js";
 import { guardarConfig, leerConfig } from "./printerConfig.js";
 import { FileDumpProvider } from "./providers/fileDumpProvider.js";
-import { UsbSpoolerProvider } from "./providers/usbSpoolerProvider.js";
+import { WinspoolProvider } from "./providers/winspoolProvider.js";
 import type { FacturaImpresion, PrinterConfig, PrinterProvider } from "./types.js";
 
 /** Elige el provider según la config y la plataforma. Un EscPosRedProvider se añadiría aquí. */
@@ -14,7 +14,7 @@ export function elegirProvider(config: PrinterConfig, userDataDir: string): Prin
         // No caemos en silencio a 'dump': el operador creería que imprimió.
         throw new Error('El modo "USB" solo funciona en Windows. Usa "Solo archivo" en este equipo.');
       }
-      return new UsbSpoolerProvider(config.nombreCompartido);
+      return new WinspoolProvider(config.impresora);
   }
 }
 
@@ -23,15 +23,17 @@ function facturaDePrueba(): FacturaImpresion {
   const ahora = new Date();
   const hace = new Date(ahora.getTime() - 75 * 60_000);
   return {
-    numero: "PRUEBA",
+    numero: "SP-000001",
+    tarjeta: "0042",
+    detalleCobro: "6 × $1.000",
     fechaEmision: ahora.toISOString(),
     placa: "TEST123",
     tipoVehiculo: "carro",
     horaEntrada: hace.toISOString(),
     horaSalida: ahora.toISOString(),
-    tiempoTotal: "1 h 15 min",
+    tiempoTotal: "1 h 25 min",
     tarifaAplicada: "Bloque 15 min",
-    total: 12000,
+    total: 1000,
     metodoPago: "Efectivo",
   };
 }

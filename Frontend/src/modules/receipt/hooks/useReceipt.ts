@@ -1,7 +1,13 @@
 import { useState, useCallback, useEffect } from "react";
 import { formatDuracion, formatHora, getApiError } from "@/shared/utils/formatters";
+import { usePrinter } from "@/shared/printing/usePrinter";
 import type { DatosPago, MetodoPago, VehiculoPatio } from "../receipt.types";
-import { imprimirRecibo, obtenerVehiculoPatio, procesarPago } from "../services/receipt.service";
+import { obtenerVehiculoPatio, procesarPago } from "../services/receipt.service";
+
+/** "efectivo" → "Efectivo" (el recibo no usa CSS para capitalizar). */
+function etiquetaMetodo(metodo?: string | null): string {
+  return metodo ? metodo.charAt(0).toUpperCase() + metodo.slice(1) : "Sin cobro";
+}
 
 /**
  * Cobro de la salida de un vehículo. Al abrirse el modal (ingresoId definido)
@@ -15,6 +21,7 @@ export function useReceipt(ingresoId: string | null) {
   const [datosRecibo, setDatosRecibo] = useState<DatosPago | null>(null);
   const [metodoPago, setMetodoPago] = useState<MetodoPago>("efectivo");
   const [montoRecibido, setMontoRecibido] = useState(0);
+  const { imprimirFactura, ocupado: imprimiendo, error: errorImpresion, limpiarError } = usePrinter();
 
   useEffect(() => {
     if (!ingresoId) return;
@@ -56,6 +63,22 @@ export function useReceipt(ingresoId: string | null) {
         fecha: new Date(res.horaSalida).toLocaleDateString("es-CO", {
           weekday: "long", day: "numeric", month: "long", year: "numeric",
         }),
+        factura: {
+          numero: res.ticket,
+          fechaEmision: res.horaSalida,
+          placa: res.placa,
+          tipoVehiculo: res.tipo,
+          tarjeta: res.tarjeta || undefined,
+          horaEntrada: res.horaIngreso,
+          horaSalida: res.horaSalida,
+          tiempoTotal: formatDuracion(res.minutos),
+          tarifaAplicada: res.plan,
+          detalleCobro: res.topeAplicado
+            ? "Tope diario aplicado"
+            : `${res.bloques} × $${res.valorBloque.toLocaleString("es-CO")}`,
+          total: res.total,
+          metodoPago: etiquetaMetodo(res.metodoPago),
+        },
       });
       return true;
     } catch (err) {
@@ -66,17 +89,19 @@ export function useReceipt(ingresoId: string | null) {
     }
   }, [ingresoId, vehiculo, metodoPago]);
 
-  const imprimir = useCallback(() => {
-    if (datosRecibo) imprimirRecibo(datosRecibo);
-  }, [datosRecibo]);
+  /** Imprime en la térmica (ESC/POS RAW). Un fallo no revierte el cobro: solo se informa. */
+  const imprimir = useCallback(async () => {
+    if (datosRecibo) await imprimirFactura(datosRecibo.factura); // el error queda en errorImpresion
+  }, [datosRecibo, imprimirFactura]);
 
   const reiniciar = useCallback(() => {
     setVehiculo(null);
     setDatosRecibo(null);
     setError(null);
+    limpiarError();
     setMetodoPago("efectivo");
     setMontoRecibido(0);
-  }, []);
+  }, [limpiarError]);
 
   const agregarMonto = useCallback((cantidad: number) => {
     setMontoRecibido((prev) => prev + cantidad);
@@ -96,6 +121,8 @@ export function useReceipt(ingresoId: string | null) {
     agregarMonto,
     pagar,
     imprimir,
+    imprimiendo,
+    errorImpresion,
     reiniciar,
   };
 }

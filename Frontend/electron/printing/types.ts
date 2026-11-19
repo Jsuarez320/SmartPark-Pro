@@ -20,6 +20,10 @@ export interface FacturaImpresion {
   tiempoTotal: string;
   /** Ej. "Bloque 15 min" o "Día completo". */
   tarifaAplicada: string;
+  /** Opcional, ej. "6 × $1.000". */
+  detalleCobro?: string;
+  /** Opcional: tarjeta/ficha asignada al vehículo. */
+  tarjeta?: string;
   /** Pesos COP enteros, >= 0. */
   total: number;
   metodoPago: string;
@@ -34,8 +38,8 @@ export interface EncabezadoParqueadero {
 
 export interface PrinterConfig {
   modo: ModoImpresion;
-  /** Nombre con el que Windows comparte la impresora (\\localhost\<nombre>). */
-  nombreCompartido: string;
+  /** Nombre de la impresora instalada en Windows (cola de impresión), ej. "STAR-TP80NC-M". */
+  impresora: string;
   /** Clave de CharacterSet de node-thermal-printer, ej. "PC858_EURO". */
   characterSet: string;
   abrirCajon: boolean;

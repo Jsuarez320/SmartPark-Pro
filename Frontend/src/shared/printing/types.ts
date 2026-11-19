@@ -17,6 +17,8 @@ export interface FacturaImpresion {
   horaSalida: string;
   tiempoTotal: string;
   tarifaAplicada: string;
+  detalleCobro?: string;
+  tarjeta?: string;
   total: number;
   metodoPago: string;
 }
@@ -30,7 +32,8 @@ export interface EncabezadoParqueadero {
 
 export interface PrinterConfig {
   modo: ModoImpresion;
-  nombreCompartido: string;
+  /** Nombre de la impresora instalada en Windows. */
+  impresora: string;
   characterSet: string;
   abrirCajon: boolean;
   encabezado: EncabezadoParqueadero;
@@ -38,6 +41,7 @@ export interface PrinterConfig {
 }
 
 export type ResultadoImpresion = { ok: true } | { ok: false; error: string };
+export type ResultadoImpresoras = { ok: true; impresoras: string[] } | { ok: false; error: string };
 export type ResultadoConfig = { ok: true; config: PrinterConfig } | { ok: false; error: string };
 
 /** Juegos de caracteres para español, para el selector. PC858_EURO es el primero a probar. */

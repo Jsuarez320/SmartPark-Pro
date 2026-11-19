@@ -1,3 +1,5 @@
+import type { FacturaImpresion } from "@/shared/printing/types";
+
 export type MetodoPago = "efectivo" | "tarjeta" | "nequi";
 
 /** Vehículo dentro del parqueadero con su cobro estimado al momento actual. */
@@ -47,4 +49,6 @@ export interface DatosPago {
   total: number;
   metodoPago: string;
   fecha: string;
+  /** Mismos datos en el formato que consume la impresora (fechas ISO). */
+  factura: FacturaImpresion;
 }

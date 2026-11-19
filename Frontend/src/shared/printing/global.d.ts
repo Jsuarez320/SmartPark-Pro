@@ -11,6 +11,7 @@ interface Window {
     printer?: {
       imprimirFactura(factura: import("./types").FacturaImpresion): Promise<import("./types").ResultadoImpresion>;
       imprimirPrueba(): Promise<import("./types").ResultadoImpresion>;
+      listarImpresoras(): Promise<import("./types").ResultadoImpresoras>;
       getConfig(): Promise<import("./types").ResultadoConfig>;
       setConfig(config: import("./types").PrinterConfig): Promise<import("./types").ResultadoConfig>;
     };

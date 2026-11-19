@@ -1,4 +1,5 @@
 import { app, ipcMain } from "electron";
+import { listarImpresoras } from "./impresoras.js";
 import { crearPrinterService } from "./printerService.js";
 import type { FacturaImpresion, PrinterConfig } from "./types.js";
 
@@ -8,6 +9,7 @@ export const CANALES = {
   imprimirPrueba: "printer:imprimir-prueba",
   getConfig: "printer:get-config",
   setConfig: "printer:set-config",
+  listar: "printer:listar",
 } as const;
 
 type Respuesta<T extends object = object> = ({ ok: true } & T) | { ok: false; error: string };
@@ -27,6 +29,10 @@ function cadena(obj: Record<string, unknown>, campo: string, max = MAX_TEXTO): s
   if (v.trim() === "") throw new Error(`"${campo}" no puede estar vacío.`);
   if (v.length > max) throw new Error(`"${campo}" supera ${max} caracteres.`);
   return v;
+}
+
+function opcional(obj: Record<string, unknown>, campo: string, max: number): string | undefined {
+  return obj[campo] == null || obj[campo] === "" ? undefined : cadena(obj, campo, max);
 }
 
 function fechaIso(obj: Record<string, unknown>, campo: string): string {
@@ -53,6 +59,8 @@ export function validarFactura(raw: unknown): FacturaImpresion {
     horaSalida: fechaIso(raw, "horaSalida"),
     tiempoTotal: cadena(raw, "tiempoTotal", 32),
     tarifaAplicada: cadena(raw, "tarifaAplicada", 48),
+    detalleCobro: opcional(raw, "detalleCobro", 48),
+    tarjeta: opcional(raw, "tarjeta", 24),
     total,
     metodoPago: cadena(raw, "metodoPago", 32),
   };
@@ -84,6 +92,9 @@ export function registerPrinterIpc(): void {
     seguro(() => servicio.imprimirFactura(validarFactura(payload))),
   );
   ipcMain.handle(CANALES.imprimirPrueba, () => seguro(() => servicio.imprimirPrueba()));
+  ipcMain.handle(CANALES.listar, () =>
+    seguro<{ impresoras: string[] }>(async () => ({ impresoras: await listarImpresoras() })),
+  );
   ipcMain.handle(CANALES.getConfig, () =>
     seguro<{ config: PrinterConfig }>(() => ({ config: servicio.getConfig() })),
   );

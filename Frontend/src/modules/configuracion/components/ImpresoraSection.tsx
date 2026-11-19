@@ -22,14 +22,35 @@ function Campo({ etiqueta, children }: { etiqueta: string; children: React.React
 }
 
 export function ImpresoraSection() {
-  const { disponible, config, cargando, ocupado, error, limpiarError, guardarConfig, imprimirFactura, imprimirPrueba } =
-    usePrinter();
+  const {
+    disponible,
+    config,
+    cargando,
+    ocupado,
+    error,
+    limpiarError,
+    impresoras,
+    listarImpresoras,
+    guardarConfig,
+    imprimirFactura,
+    imprimirPrueba,
+  } = usePrinter();
   const [borrador, setBorrador] = useState<PrinterConfig | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
 
   useEffect(() => {
     if (config) setBorrador(config);
   }, [config]);
+
+  useEffect(() => {
+    void listarImpresoras();
+  }, [listarImpresoras]);
+
+  // Si la impresora guardada ya no está instalada, se muestra igual para poder avisar de ello.
+  const opcionesImpresora =
+    borrador?.impresora && !impresoras.includes(borrador.impresora)
+      ? [borrador.impresora, ...impresoras]
+      : impresoras;
 
   const modificado = borrador !== null && config !== null && JSON.stringify(borrador) !== JSON.stringify(config);
 
@@ -52,7 +73,7 @@ export function ImpresoraSection() {
 
   // En modo USB, "ok" solo significa que Windows encoló el trabajo (ver usbSpoolerProvider).
   const mensajeOk = (base: string) =>
-    config?.modo === "usb" ? `${base} enviada a la cola de impresión de Windows.` : `${base} guardada en el archivo de volcado.`;
+    config?.modo === "usb" ? `${base} enviada a la impresora (RAW).` : `${base} guardada en el archivo de volcado.`;
 
   return (
     <div className="rounded-xl border border-border bg-surface p-6 shadow-sm">
@@ -92,15 +113,23 @@ export function ImpresoraSection() {
                 </SelectContent>
               </Select>
             </Campo>
-            <Campo etiqueta="Nombre compartido en Windows">
-              <Input
-                value={borrador.nombreCompartido}
-                maxLength={32}
+            <Campo etiqueta="Impresora instalada">
+              <Select
+                value={borrador.impresora || undefined}
+                onValueChange={(v) => cambiar({ impresora: v })}
                 disabled={borrador.modo !== "usb"}
-                onChange={(e) => cambiar({ nombreCompartido: e.target.value })}
-                placeholder="POS80"
-                className="h-11"
-              />
+              >
+                <SelectTrigger className="h-11">
+                  <SelectValue placeholder="Selecciona una impresora" />
+                </SelectTrigger>
+                <SelectContent>
+                  {opcionesImpresora.map((n) => (
+                    <SelectItem key={n} value={n}>
+                      {n}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </Campo>
             <Campo etiqueta="Juego de caracteres">
               <Select value={borrador.characterSet} onValueChange={(v) => cambiar({ characterSet: v })}>

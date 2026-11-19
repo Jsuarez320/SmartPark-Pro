@@ -10,6 +10,7 @@ contextBridge.exposeInMainWorld("smartpark", {
     imprimirFactura: (factura: FacturaImpresion) =>
       ipcRenderer.invoke("printer:imprimir-factura", factura),
     imprimirPrueba: () => ipcRenderer.invoke("printer:imprimir-prueba"),
+    listarImpresoras: () => ipcRenderer.invoke("printer:listar"),
     getConfig: () => ipcRenderer.invoke("printer:get-config"),
     setConfig: (config: PrinterConfig) => ipcRenderer.invoke("printer:set-config", config),
   },
