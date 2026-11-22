@@ -1,6 +1,7 @@
 import { NavLink, useNavigate } from "react-router-dom";
-import { ClipboardList, Car, Wallet, Settings, LogOut, Receipt, LayoutDashboard, Moon, Sun } from "lucide-react";
+import { CalendarClock, ClipboardList, LayoutDashboard, LogOut, Moon, Receipt, Settings, Sun, Tags, Wallet } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
+import { useResumenMensualidades } from "@/modules/mensualidades";
 import { useAuthStore } from "@/stores/authStore";
 import { useUiStore } from "@/stores/uiStore";
 
@@ -12,10 +13,12 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { to: "/", label: "Registro", icon: ClipboardList, roles: ["admin", "employee"] },
-  { to: "/vehiculos", label: "Vehículos", icon: Car, roles: ["admin"] },
-  { to: "/pago", label: "Cobrar", icon: Receipt, roles: ["admin", "employee"] },
+  { to: "/", label: "Operaciones", icon: ClipboardList, roles: ["admin", "employee"] },
+  { to: "/mensualidades", label: "Mensualidades", icon: CalendarClock, roles: ["admin", "employee"] },
   { to: "/caja", label: "Caja", icon: Wallet, roles: ["admin", "employee"] },
+  { to: "/recibos", label: "Recibos", icon: Receipt, roles: ["admin", "employee"] },
+  { to: "/tarifas", label: "Tarifas", icon: Tags, roles: ["admin"] },
+  { to: "/dashboard", label: "Panel", icon: LayoutDashboard, roles: ["admin"] },
   { to: "/configuracion", label: "Configuración", icon: Settings, roles: ["admin"] },
 ];
 
@@ -25,6 +28,9 @@ export function Header() {
   const toggleTheme = useUiStore((s) => s.toggleTheme);
   const theme = useUiStore((s) => s.theme);
   const navigate = useNavigate();
+  // Alerta de vencimientos: puntito en «Mensualidades» si hay por vencer o vencidas.
+  const { data: resumen } = useResumenMensualidades();
+  const alertasMensualidades = (resumen?.porVencer ?? 0) + (resumen?.vencidas ?? 0);
 
   const handleLogout = () => {
     logout();
@@ -59,8 +65,18 @@ export function Header() {
                 }`
               }
             >
-              <item.icon className="size-4 shrink-0" />
-              <span className="hidden sm:inline">{item.label}</span>
+              <span className="relative">
+                <item.icon className="size-4 shrink-0" />
+                {item.to === "/mensualidades" && alertasMensualidades > 0 && (
+                  <span
+                    className="absolute -right-1.5 -top-1.5 flex size-3.5 items-center justify-center rounded-full bg-amber-500 text-[9px] font-bold text-white"
+                    aria-label={`${alertasMensualidades} mensualidades por vencer o vencidas`}
+                  >
+                    {alertasMensualidades > 9 ? "9+" : alertasMensualidades}
+                  </span>
+                )}
+              </span>
+              <span className="hidden lg:inline">{item.label}</span>
             </NavLink>
           ))}
         </nav>

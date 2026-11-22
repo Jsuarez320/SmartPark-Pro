@@ -1,8 +1,9 @@
-import { construirTicket, construirTicketIngreso } from "./ticketBuilder.js";
+import { reciboDePrueba } from "./ejemplos.js";
+import { construirTicket } from "./ticketBuilder.js";
 import { guardarConfig, leerConfig } from "./printerConfig.js";
 import { FileDumpProvider } from "./providers/fileDumpProvider.js";
 import { WinspoolProvider } from "./providers/winspoolProvider.js";
-import type { IngresoData, PrinterConfig, PrinterProvider, ReciboData } from "./types.js";
+import type { PrinterConfig, PrinterProvider, ReciboGuardado } from "./types.js";
 
 /** Elige el provider según la config y la plataforma. Un EscPosRedProvider se añadiría aquí. */
 export function elegirProvider(config: PrinterConfig, userDataDir: string): PrinterProvider {
@@ -16,35 +17,6 @@ export function elegirProvider(config: PrinterConfig, userDataDir: string): Prin
       }
       return new WinspoolProvider(config.impresora);
   }
-}
-
-/** Datos de ejemplo de la maqueta (también valida tildes, ñ y cifras largas). */
-export function reciboDePrueba(): ReciboData {
-  const salida = new Date();
-  salida.setHours(11, 32, 0, 0);
-  const entrada = new Date(salida);
-  entrada.setHours(9, 57, 0, 0);
-  return {
-    numero: "SP-000123",
-    fechaEmision: salida.toISOString(),
-    cajero: "01 CAJERO 01",
-    tiquete: "729360330190957-01",
-    horaEntrada: entrada.toISOString(),
-    horaSalida: salida.toISOString(),
-    cedula: "222222222222",
-    nombre: "CONSUMIDOR FINAL",
-    tipoVehiculo: "moto",
-    placa: "XZO75",
-    marca: "HONDA",
-    items: [
-      { descripcion: "SERVICIO PARQUEADERO", cantidad: 1, valorUnitario: 1600, iva: 0, total: 1600 },
-      { descripcion: "RECARGO", cantidad: 1, valorUnitario: 1600, iva: 0, total: 1600 },
-    ],
-    subtotal: 3200,
-    descuento: 0,
-    total: 3200,
-    metodoPago: "Efectivo",
-  };
 }
 
 /** El encabezado de la prueba usa el configurado y rellena con ejemplos lo que esté vacío. */
@@ -71,7 +43,11 @@ function conEncabezadoDeEjemplo(config: PrinterConfig): PrinterConfig {
   };
 }
 
-/** `userDataDir` = app.getPath('userData'), inyectado desde ipc.ts para no acoplar a Electron. */
+/**
+ * ÚNICO servicio de impresión. Imprime cualquier recibo guardado (ingreso, pago, mensualidad o
+ * cierre de caja) con su plantilla. `userDataDir` = app.getPath('userData'), inyectado desde
+ * ipc.ts para no acoplar a Electron.
+ */
 export function crearPrinterService(userDataDir: string) {
   // Cola en serie: dos clics seguidos no deben mezclar dos trabajos en el spooler.
   let cola: Promise<unknown> = Promise.resolve();
@@ -81,23 +57,15 @@ export function crearPrinterService(userDataDir: string) {
     return siguiente;
   };
 
-  async function imprimir(factura: ReciboData, config: PrinterConfig): Promise<void> {
-    const buffer = await construirTicket(factura, config);
-    await elegirProvider(config, userDataDir).imprimir(buffer);
-  }
-
-  async function imprimirIngreso(ingreso: IngresoData, config: PrinterConfig): Promise<void> {
-    const buffer = await construirTicketIngreso(ingreso, config);
+  async function imprimir(recibo: ReciboGuardado, config: PrinterConfig): Promise<void> {
+    const buffer = construirTicket(recibo, config);
     await elegirProvider(config, userDataDir).imprimir(buffer);
   }
 
   return {
     getConfig: (): PrinterConfig => leerConfig(userDataDir),
     setConfig: (raw: unknown): PrinterConfig => guardarConfig(userDataDir, raw),
-    imprimirFactura: (factura: ReciboData) =>
-      enSerie(() => imprimir(factura, leerConfig(userDataDir))),
-    imprimirIngreso: (ingreso: IngresoData) =>
-      enSerie(() => imprimirIngreso(ingreso, leerConfig(userDataDir))),
+    imprimirRecibo: (recibo: ReciboGuardado) => enSerie(() => imprimir(recibo, leerConfig(userDataDir))),
     imprimirPrueba: () =>
       enSerie(() => imprimir(reciboDePrueba(), conEncabezadoDeEjemplo(leerConfig(userDataDir)))),
   };

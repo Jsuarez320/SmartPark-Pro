@@ -1,7 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
 import type {
-  FacturaImpresion,
-  IngresoData,
   PrinterConfig,
   ResultadoConfig,
   ResultadoImpresion,
@@ -11,6 +9,8 @@ import type {
 const NO_DISPONIBLE = "La impresión solo está disponible en la aplicación de escritorio.";
 
 /**
+ * Configuración de la impresora (Configuración → Impresora) y prueba de impresión.
+ * Para imprimir recibos de la operación usa `useImprimirRecibo`.
  * Envuelve window.smartpark.printer con estados de carga y error.
  * Nunca lanza: cada acción devuelve el resultado y deja el mensaje en `error`.
  */
@@ -84,29 +84,6 @@ export function usePrinter() {
     if (r?.ok) setImpresoras(r.impresoras);
   }, [api, ejecutar]);
 
-  const imprimirFactura = useCallback(
-    async (factura: FacturaImpresion): Promise<boolean> => {
-      if (!api) {
-        setError(NO_DISPONIBLE);
-        return false;
-      }
-      return (await ejecutar(() => api.imprimirFactura(factura)))?.ok === true;
-    },
-    [api, ejecutar],
-  );
-
-  /** Recibo de entrada (clientes diarios). */
-  const imprimirIngreso = useCallback(
-    async (ingreso: IngresoData): Promise<boolean> => {
-      if (!api) {
-        setError(NO_DISPONIBLE);
-        return false;
-      }
-      return (await ejecutar(() => api.imprimirIngreso(ingreso)))?.ok === true;
-    },
-    [api, ejecutar],
-  );
-
   const imprimirPrueba = useCallback(async (): Promise<boolean> => {
     if (!api) {
       setError(NO_DISPONIBLE);
@@ -125,8 +102,6 @@ export function usePrinter() {
     impresoras,
     listarImpresoras,
     guardarConfig,
-    imprimirFactura,
-    imprimirIngreso,
     imprimirPrueba,
   };
 }

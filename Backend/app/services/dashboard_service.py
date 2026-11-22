@@ -1,47 +1,33 @@
-from sqlalchemy import text
 from sqlalchemy.orm import Session
 
+from app.core.dinero import entero
+from app.repositories import dashboard_repository
+from app.repositories import membresia_repository
 from app.schemas.dashboard import DashboardOut
-from app.services.caja_service import MOVIMIENTOS_SQL, _transaccion
-from app.services.vehiculo_service import entero, estadisticas
+from app.services import caja_service, tarifa_service
+from app.services.vigencia import estado_mensualidad, hoy_en_colombia
+from app.repositories.operacion_repository import ahora_del_servidor
 
 
 def obtener_dashboard(db: Session) -> DashboardOut:
-    patio = db.execute(
-        text(
-            """
-            SELECT COUNT(*) AS total,
-                   COUNT(*) FILTER (WHERE lower(tv.nombre) = 'carro') AS carros,
-                   COUNT(*) FILTER (WHERE lower(tv.nombre) = 'moto') AS motos
-            FROM ingresos i
-            JOIN vehiculos v ON v.id = i.vehiculo_id
-            JOIN tipos_vehiculo tv ON tv.id = v.tipo_vehiculo_id
-            WHERE i.estado = 'activo'
-            """
-        )
-    ).mappings().one()
+    total, carros, motos = dashboard_repository.patio_por_tipo(db)
+    promedio = dashboard_repository.promedio_minutos_de_hoy(db)
 
-    ingresos_hoy = db.execute(
-        text(
-            "SELECT COALESCE(SUM(monto), 0) FROM caja_transacciones "
-            "WHERE tipo = 'ingreso' AND created_at >= date_trunc('day', NOW())"
-        )
-    ).scalar_one()
-
-    promedio = db.execute(
-        text("SELECT ROUND(AVG(minutos_totales)) FROM salidas WHERE fecha_salida >= date_trunc('day', NOW())")
-    ).scalar_one()
-
-    recientes = db.execute(
-        text(MOVIMIENTOS_SQL + " ORDER BY ct.created_at DESC LIMIT 8")
-    ).mappings().all()
+    hoy = hoy_en_colombia(ahora_del_servidor(db))
+    umbral = tarifa_service.obtener_configuracion(db).umbral_vencimiento_dias
+    mensuales = sum(
+        1
+        for f in membresia_repository.listar_mensualidades(db)
+        if estado_mensualidad(f.membresia.fecha_fin, hoy, umbral) != "vencida"
+    )
 
     return DashboardOut(
-        vehiculos_en_patio=patio["total"],
-        carros_en_patio=patio["carros"],
-        motos_en_patio=patio["motos"],
-        ingresos_hoy=entero(ingresos_hoy),
-        clientes_mensuales=estadisticas(db).total_mensuales,
+        vehiculos_en_patio=total,
+        carros_en_patio=carros,
+        motos_en_patio=motos,
+        ingresos_hoy=entero(dashboard_repository.ingresos_de_hoy(db)),
+        clientes_mensuales=mensuales,
         tiempo_promedio_min=int(promedio) if promedio is not None else None,
-        recientes=[_transaccion(f) for f in recientes],
+        recientes=caja_service.movimientos_recientes(db, 8),
     )
+

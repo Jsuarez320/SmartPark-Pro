@@ -24,6 +24,33 @@ export function formatFechaHora(iso: string | undefined | null) {
   });
 }
 
+/** "2026-12-22" -> "22 dic 2026". Fecha de calendario: se formatea por texto para evitar desfases de zona horaria. */
+export function formatDia(dia: string | undefined | null) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(dia ?? "");
+  if (!m) return dia ?? "";
+  const meses = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+  return `${m[3]} ${meses[Number(m[2]) - 1]} ${m[1]}`;
+}
+
+/** Fecha y hora completas con año: "22 nov 2026, 10:05 a. m.". */
+export function formatFechaHoraCompleta(iso: string | undefined | null) {
+  if (!iso) return "";
+  return new Date(iso).toLocaleString("es-CO", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+/** Hoy como "YYYY-MM-DD" en hora local (para inputs de fecha). */
+export function hoyISO(): string {
+  const d = new Date();
+  const dos = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${dos(d.getMonth() + 1)}-${dos(d.getDate())}`;
+}
+
 /** 95 -> "1h 35min" */
 export function formatDuracion(minutos: number) {
   const h = Math.floor(minutos / 60);

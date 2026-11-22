@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Loader2, Printer, Receipt, Save } from "lucide-react";
+import { Loader2, Printer, Save } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import { Checkbox } from "@/shared/components/ui/checkbox";
 import { Input } from "@/shared/components/ui/input";
@@ -7,7 +7,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { usePrinter } from "@/shared/printing/usePrinter";
 import { CHARACTER_SETS_SUGERIDOS } from "@/shared/printing/types";
 import type { ModoImpresion, PrinterConfig } from "@/shared/printing/types";
-import { crearFacturaEjemplo } from "../mocks/facturaEjemplo";
 
 const CLASE_TEXTAREA =
   "flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50";
@@ -32,7 +31,6 @@ export function ImpresoraSection() {
     impresoras,
     listarImpresoras,
     guardarConfig,
-    imprimirFactura,
     imprimirPrueba,
   } = usePrinter();
   const [borrador, setBorrador] = useState<PrinterConfig | null>(null);
@@ -233,15 +231,6 @@ export function ImpresoraSection() {
             >
               {ocupado ? <Loader2 className="size-4 animate-spin" /> : <Printer className="size-4" />}
               Imprimir prueba
-            </Button>
-            <Button
-              variant="outline"
-              disabled={ocupado || modificado}
-              onClick={() => probar(() => imprimirFactura(crearFacturaEjemplo()), mensajeOk("Factura de ejemplo"))}
-              className="gap-2"
-            >
-              <Receipt className="size-4" />
-              Imprimir factura de ejemplo
             </Button>
             <Button
               disabled={ocupado || !modificado}

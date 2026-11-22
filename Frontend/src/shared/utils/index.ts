@@ -6,4 +6,3 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export { formatCurrencyCOP } from "./formatters";
-export { tiposVehiculo, type TipoVehiculo } from "./vehiculo.utils";

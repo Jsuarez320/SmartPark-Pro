@@ -1,112 +1,68 @@
-import { useCallback, useEffect, useState } from "react";
-import { getApiError } from "@/shared/utils/formatters";
-import type {
-  DesgloseIngresos,
-  PeriodoFiltro,
-  Transaccion,
-  TurnoActual,
-  TurnoHistorial,
-} from "../caja.types";
-import {
-  abrirTurno,
-  cerrarTurno,
-  obtenerHistorialTurnos,
-  obtenerIngresos,
-  obtenerTransacciones,
-  obtenerTurno,
-} from "../services/caja.service";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import * as servicio from "../services/caja.service";
+import type { AbrirCajaDatos, CerrarCajaDatos, PeriodoFiltro } from "../caja.types";
 
-const periodos: PeriodoFiltro[] = ["Día", "Semana", "Mes", "Año"];
+// Claves con prefijo "caja". Otros módulos (operaciones, mensualidades) las invalidan por su nombre de texto
+// cuando un cobro cambia la caja; aquí se invalida lo que dependa de abrir o cerrar.
+const K = {
+  turno: ["caja", "turno"] as const,
+  historial: ["caja", "historial"] as const,
+  detalle: (id: string | null) => ["caja", "detalle", id] as const,
+  ingresos: (p: PeriodoFiltro) => ["caja", "ingresos", p] as const,
+  transacciones: (p: PeriodoFiltro) => ["caja", "transacciones", p] as const,
+};
 
-/** Estado de caja. Los reportes (ingresos, transacciones, historial) solo se cargan para el admin. */
-export function useCaja(isAdmin: boolean) {
-  const [periodoActivo, setPeriodoActivo] = useState<PeriodoFiltro>("Día");
-  const [turno, setTurno] = useState<TurnoActual | null>(null);
-  const [cargando, setCargando] = useState(true);
-  const [procesando, setProcesando] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [ingresos, setIngresos] = useState<DesgloseIngresos | null>(null);
-  const [transacciones, setTransacciones] = useState<Transaccion[]>([]);
-  const [historial, setHistorial] = useState<TurnoHistorial[]>([]);
-  const [ultimoCierre, setUltimoCierre] = useState<TurnoHistorial | null>(null);
+const REFRESCO_MS = 30_000;
 
-  const cargarTurno = useCallback(async () => {
-    try {
-      setTurno(await obtenerTurno());
-    } catch (err) {
-      setError(getApiError(err, "No se pudo consultar la caja"));
-    } finally {
-      setCargando(false);
-    }
-  }, []);
+/** Caja abierta (o null). Se refresca sola: otros puestos también cobran. */
+export function useTurnoActual() {
+  return useQuery({ queryKey: K.turno, queryFn: servicio.obtenerTurnoActual, refetchInterval: REFRESCO_MS });
+}
 
-  const cargarReportes = useCallback(async () => {
-    if (!isAdmin) return;
-    try {
-      const [i, t, h] = await Promise.all([
-        obtenerIngresos(periodoActivo),
-        obtenerTransacciones(periodoActivo),
-        obtenerHistorialTurnos(),
-      ]);
-      setIngresos(i);
-      setTransacciones(t);
-      setHistorial(h);
-    } catch (err) {
-      setError(getApiError(err, "No se pudieron cargar los reportes"));
-    }
-  }, [isAdmin, periodoActivo]);
+export function useAbrirCaja() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (datos: AbrirCajaDatos) => servicio.abrirTurno(datos),
+    onSuccess: (turno) => {
+      qc.setQueryData(K.turno, turno);
+      void qc.invalidateQueries({ queryKey: ["caja"] });
+    },
+  });
+}
 
-  useEffect(() => {
-    cargarTurno();
-  }, [cargarTurno]);
+export function useCerrarCaja() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (datos: CerrarCajaDatos) => servicio.cerrarTurno(datos),
+    onSuccess: () => {
+      qc.setQueryData(K.turno, null);
+      void qc.invalidateQueries({ queryKey: ["caja"] });
+      void qc.invalidateQueries({ queryKey: ["recibos"] });
+    },
+  });
+}
 
-  useEffect(() => {
-    cargarReportes();
-  }, [cargarReportes]);
+export function useDetalleTurno(turnoId: string | null) {
+  return useQuery({
+    queryKey: K.detalle(turnoId),
+    queryFn: () => servicio.obtenerDetalleTurno(turnoId as string),
+    enabled: turnoId !== null,
+  });
+}
 
-  const ejecutar = async (accion: () => Promise<void>) => {
-    setProcesando(true);
-    setError(null);
-    try {
-      await accion();
-      return true;
-    } catch (err) {
-      setError(getApiError(err, "No se pudo completar la operación"));
-      return false;
-    } finally {
-      setProcesando(false);
-    }
-  };
+/** Historial de turnos: solo administrador (`habilitado`). */
+export function useHistorialTurnos(habilitado: boolean) {
+  return useQuery({ queryKey: K.historial, queryFn: () => servicio.obtenerHistorial(20), enabled: habilitado });
+}
 
-  const abrir = (montoInicial: number) =>
-    ejecutar(async () => {
-      setTurno(await abrirTurno(montoInicial));
-      setUltimoCierre(null);
-      await cargarReportes();
-    });
+export function useIngresosPeriodo(periodo: PeriodoFiltro, habilitado: boolean) {
+  return useQuery({ queryKey: K.ingresos(periodo), queryFn: () => servicio.obtenerIngresos(periodo), enabled: habilitado });
+}
 
-  const cerrar = (montoContado: number, notas?: string) =>
-    ejecutar(async () => {
-      setUltimoCierre(await cerrarTurno(montoContado, notas));
-      setTurno(null);
-      await cargarReportes();
-    });
-
-  return {
-    periodoActivo,
-    setPeriodoActivo,
-    periodos,
-    turno,
-    cargando,
-    procesando,
-    error,
-    limpiarError: () => setError(null),
-    ingresos,
-    transacciones,
-    historial,
-    ultimoCierre,
-    descartarCierre: () => setUltimoCierre(null),
-    abrir,
-    cerrar,
-  };
+export function useTransaccionesPeriodo(periodo: PeriodoFiltro, habilitado: boolean) {
+  return useQuery({
+    queryKey: K.transacciones(periodo),
+    queryFn: () => servicio.obtenerTransacciones(periodo),
+    enabled: habilitado,
+  });
 }

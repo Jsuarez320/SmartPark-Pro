@@ -156,3 +156,25 @@ export function formatearHora24(iso: string): string {
   if (Number.isNaN(d.getTime())) return limpiar(iso);
   return `${dos(d.getHours())}:${dos(d.getMinutes())}`;
 }
+
+/**
+ * "2026-12-22" → "22/12/2026". Fecha de calendario (sin hora): se formatea por texto, NO con Date,
+ * porque new Date("2026-12-22") es medianoche UTC y en Colombia caería el día anterior.
+ */
+export function formatearDia(iso: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso);
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : limpiar(iso);
+}
+
+/** 110 → "1h 50min"; 45 → "45min". */
+export function formatearDuracion(minutos: number): string {
+  const m = Math.max(0, Math.round(minutos));
+  const h = Math.floor(m / 60);
+  return h > 0 ? `${h}h ${dos(m % 60)}min` : `${m}min`;
+}
+
+/** "transferencia" → "Transferencia". */
+export function capitalizar(texto: string): string {
+  const t = limpiar(texto);
+  return t.charAt(0).toUpperCase() + t.slice(1);
+}

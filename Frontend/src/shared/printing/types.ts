@@ -1,68 +1,11 @@
 /**
- * Espejo de electron/printing/types.ts (fuente de verdad).
- * Son dos proyectos TypeScript separados (src vs electron), así que se duplican
- * a propósito; si cambias uno, cambia el otro.
+ * Espejo de electron/printing/types.ts (fuente de verdad) para la configuración de la impresora.
+ * Los recibos viven en shared/types/recibo.ts. Son dos proyectos TypeScript separados
+ * (src vs electron), así que se duplican a propósito; si cambias uno, cambia el otro.
  */
 
 export type TipoVehiculo = "carro" | "moto";
 export type ModoImpresion = "usb" | "dump";
-
-/** Una fila de la tabla de conceptos cobrados. Dinero en pesos COP enteros. */
-export interface ItemRecibo {
-  descripcion: string;
-  cantidad: number;
-  valorUnitario: number;
-  /** Valor del IVA de la fila (no porcentaje). 0 si no aplica. */
-  iva: number;
-  total: number;
-}
-
-/** Datos del recibo ya listos para imprimir (sin lógica de negocio). Fechas en ISO 8601. */
-export interface ReciboData {
-  /** Número de factura, ej. "SP-000123". */
-  numero: string;
-  fechaEmision: string;
-  /** Opcional: "01 CAJERO 01". Si falta, la línea no se imprime. */
-  cajero?: string;
-  /** Tiquete / tarjeta del ingreso. */
-  tiquete?: string;
-  horaEntrada: string;
-  horaSalida: string;
-  /** Si no hay cliente se imprime 222222222222 / CONSUMIDOR FINAL. */
-  cedula?: string;
-  nombre?: string;
-  tipoVehiculo: TipoVehiculo;
-  placa: string;
-  marca?: string;
-  /** Una fila por concepto cobrado (servicio, recargo, mensualidad...). */
-  items: ItemRecibo[];
-  subtotal: number;
-  descuento: number;
-  total: number;
-  metodoPago?: string;
-}
-
-/** Alias histórico. */
-export type FacturaImpresion = ReciboData;
-
-/**
- * Recibo de ENTRADA para clientes diarios (sin tarjeta). Fechas en ISO 8601.
- * Los mensuales usan tarjeta física y no imprimen este recibo.
- */
-export interface IngresoData {
-  /** Número del tiquete, ej. "D-000123". */
-  tiquete: string;
-  horaEntrada: string;
-  tipoVehiculo: TipoVehiculo;
-  placa: string;
-  marca?: string;
-  /** Nombre del plan elegido, ej. "Bloque 15 min". */
-  plan: string;
-  /** Valor de la tarifa del plan (pesos COP enteros). */
-  tarifa: number;
-  /** Opcional: "01 CAJERO 01". */
-  cajero?: string;
-}
 
 export interface EncabezadoParqueadero {
   nombre: string;

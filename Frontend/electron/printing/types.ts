@@ -1,69 +1,149 @@
 /**
  * Tipos del subsistema de impresión (proceso main).
  *
- * Fuente de verdad. El renderer tiene un espejo en src/shared/printing/types.ts
- * (los dos tsconfig son proyectos separados); si cambias uno, cambia el otro.
+ * Fuente de verdad. El renderer tiene un espejo en src/shared/types/recibo.ts (recibos) y
+ * src/shared/printing/types.ts (configuración); los dos tsconfig son proyectos separados:
+ * si cambias uno, cambia el otro.
+ *
+ * Se imprime SIEMPRE el recibo GUARDADO por el backend (`contenido`): nunca se recalcula nada.
  */
 
 export type TipoVehiculo = "carro" | "moto";
 export type ModoImpresion = "usb" | "dump";
 
-/** Una fila de la tabla de conceptos cobrados. Dinero en pesos COP enteros. */
-export interface ItemRecibo {
-  descripcion: string;
-  cantidad: number;
-  valorUnitario: number;
-  /** Valor del IVA de la fila (no porcentaje). 0 si no aplica. */
-  iva: number;
-  total: number;
+// ------------------------------------------------------------------ recibo guardado (API del backend)
+
+/** Precios y reglas con los que se cobró, tal como estaban en ese momento. */
+export interface TarifaSnapshot {
+  versionId: number;
+  valorHora: number;
+  valorDia: number;
+  valorHoraFestivo: number;
+  valorDiaFestivo: number;
+  nocturnaActiva: boolean;
+  valorHoraNocturna: number | null;
+  graciaMinutos: number;
 }
 
-/** Datos del recibo ya listos para imprimir (sin lógica de negocio). Fechas en ISO 8601. */
-export interface ReciboData {
-  /** Número de factura, ej. "SP-000123". */
-  numero: string;
-  fechaEmision: string;
-  /** Opcional: "01 CAJERO 01". Si falta, la línea no se imprime. */
-  cajero?: string;
-  /** Tiquete / tarjeta del ingreso. */
-  tiquete?: string;
+export interface ContenidoIngreso {
+  tipo: "ingreso";
+  placa: string;
+  tipoVehiculo: TipoVehiculo;
+  horaEntrada: string;
+  operador: string;
+  esMensualidad: boolean;
+  mensualidad: { jornada: string; fechaFin: string; cliente: string | null } | null;
+  tarifa: TarifaSnapshot | null;
+  aviso: string | null;
+}
+
+export interface TramoCobro {
+  tipo: "normal" | "nocturna" | "festivo";
+  horas: number;
+  valorHora: number;
+  subtotal: number;
+}
+
+export interface PeriodoCobro {
+  inicio: string;
+  fin: string;
+  subtotal: number;
+  tope: number;
+  total: number;
+  topeAplicado: boolean;
+  tramos: TramoCobro[];
+}
+
+export interface ContenidoPago {
+  tipo: "pago";
+  placa: string;
+  tipoVehiculo: TipoVehiculo;
   horaEntrada: string;
   horaSalida: string;
-  /** Si no hay cliente se imprime 222222222222 / CONSUMIDOR FINAL. */
-  cedula?: string;
-  nombre?: string;
-  tipoVehiculo: TipoVehiculo;
-  placa: string;
-  marca?: string;
-  /** Una fila por concepto cobrado (servicio, recargo, mensualidad...). */
-  items: ItemRecibo[];
-  subtotal: number;
-  descuento: number;
+  /** Número del recibo de ingreso (el tiquete entregado al cliente). */
+  tiquete: number | null;
+  operador: string;
+  esMensualidad: boolean;
+  medioPago: string | null;
+  referencia: string | null;
   total: number;
-  metodoPago?: string;
+  minutosTotales: number;
+  minutosCobrados: number;
+  horasCobradas: number;
+  topeAplicado: boolean;
+  periodos: PeriodoCobro[];
+  tarifa: TarifaSnapshot | null;
 }
 
-/** Alias histórico. */
-export type FacturaImpresion = ReciboData;
-
-/**
- * Recibo de ENTRADA para clientes diarios (sin tarjeta). Fechas en ISO 8601.
- * Los mensuales usan tarjeta física y no imprimen este recibo.
- */
-export interface IngresoData {
-  /** Número del tiquete, ej. "D-000123". */
-  tiquete: string;
-  horaEntrada: string;
-  tipoVehiculo: TipoVehiculo;
+export interface ContenidoMensualidad {
+  tipo: "mensualidad";
+  esRenovacion: boolean;
   placa: string;
-  marca?: string;
-  /** Nombre del plan elegido, ej. "Bloque 15 min". */
-  plan: string;
-  /** Valor de la tarifa del plan (pesos COP enteros). */
-  tarifa: number;
-  /** Opcional: "01 CAJERO 01". */
-  cajero?: string;
+  placaAlterna: string | null;
+  tipoVehiculo: TipoVehiculo;
+  cliente: string;
+  celular: string | null;
+  tarjeta: string | null;
+  periodo: "1_dia" | "15_dias" | "1_mes";
+  jornada: "manana" | "tarde" | "completa";
+  fechaInicio: string;
+  fechaFin: string;
+  valor: number;
+  medioPago: string;
+  referencia: string | null;
+  operador: string;
+  tarifaVersionId: number;
 }
+
+export interface MovimientoCierre {
+  id: string;
+  fecha: string;
+  operacion: "horas" | "mensualidad";
+  concepto: string;
+  placa: string | null;
+  medio: "efectivo" | "transferencia";
+  monto: number;
+}
+
+export interface ContenidoCierre {
+  turnoId: string;
+  abiertoPor: string;
+  cerradoPor: string | null;
+  fechaApertura: string;
+  fechaCierre: string | null;
+  horasTurno: number;
+  baseEfectivo: number;
+  baseTransferencia: number;
+  efectivo: number;
+  transferencia: number;
+  totalRecaudado: number;
+  movimientosEfectivo: number;
+  movimientosTransferencia: number;
+  totalTransacciones: number;
+  esperadoEfectivo: number;
+  esperadoTransferencia: number;
+  efectivoContado: number | null;
+  diferenciaEfectivo: number | null;
+  notas: string | null;
+  movimientos: MovimientoCierre[];
+}
+
+interface ReciboBase {
+  /** Consecutivo del recibo. */
+  numero: number;
+  creadoEn: string;
+  /** Copias ya sacadas; si es mayor que 0 el ticket dice COPIA. */
+  reimpresiones: number;
+  placa?: string | null;
+}
+
+export type ReciboGuardado =
+  | (ReciboBase & { tipo: "ingreso"; contenido: ContenidoIngreso })
+  | (ReciboBase & { tipo: "pago"; contenido: ContenidoPago })
+  | (ReciboBase & { tipo: "mensualidad"; contenido: ContenidoMensualidad })
+  | (ReciboBase & { tipo: "cierre_caja"; contenido: ContenidoCierre });
+
+// ------------------------------------------------------------------ configuración de la impresora
 
 export interface EncabezadoParqueadero {
   nombre: string;

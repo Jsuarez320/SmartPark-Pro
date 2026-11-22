@@ -48,7 +48,7 @@ export function DashboardPage() {
             <Users className="size-4 text-brand" />
           </div>
           <p className="text-3xl font-bold text-text-primary">{cargando ? "—" : (data?.clientesMensuales ?? 0)}</p>
-          <p className="text-xs text-text-subtle mt-1">Membresías vigentes</p>
+          <p className="text-xs text-text-subtle mt-1">Mensualidades vigentes</p>
         </div>
         <div className="rounded-xl border border-border bg-surface p-5 shadow-sm">
           <div className="flex items-center justify-between mb-2">

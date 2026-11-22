@@ -20,6 +20,8 @@ _CONSTRAINTS = {
     "uq_turno_abierto": "Ya hay un turno de caja abierto",
     "ex_membresias_solape": "El vehículo ya tiene una membresía vigente en esas fechas",
     "uq_pagos_salida": "Esta salida ya fue cobrada",
+    "uq_vehiculos_placa": "Otra operación con esta placa está en curso. Intenta de nuevo",
+    "ex_tarifa_versiones_vigencia": "Otra persona actualizó la tarifa al mismo tiempo. Recarga e intenta de nuevo",
 }
 
 

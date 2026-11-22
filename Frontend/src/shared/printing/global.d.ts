@@ -9,8 +9,8 @@ interface Window {
   smartpark?: {
     platform: string;
     printer?: {
-      imprimirFactura(factura: import("./types").FacturaImpresion): Promise<import("./types").ResultadoImpresion>;
-      imprimirIngreso(ingreso: import("./types").IngresoData): Promise<import("./types").ResultadoImpresion>;
+      /** Imprime un recibo GUARDADO (ingreso, pago, mensualidad o cierre de caja). No recalcula nada. */
+      imprimirRecibo(recibo: import("../types/recibo").ReciboApi): Promise<import("./types").ResultadoImpresion>;
       imprimirPrueba(): Promise<import("./types").ResultadoImpresion>;
       listarImpresoras(): Promise<import("./types").ResultadoImpresoras>;
       getConfig(): Promise<import("./types").ResultadoConfig>;

@@ -9,10 +9,11 @@ from app.core.rate_limit import limiter
 from app.core.errors import NegocioError
 from app.routers.auth import router as auth_router
 from app.routers.caja import router as caja_router
-from app.routers.configuracion import router as configuracion_router
 from app.routers.dashboard import router as dashboard_router
-from app.routers.membresias import router as membresias_router
-from app.routers.vehiculos import router as vehiculos_router
+from app.routers.mensualidades import router as mensualidades_router
+from app.routers.operaciones import router as operaciones_router
+from app.routers.recibos import router as recibos_router
+from app.routers.tarifas import router as tarifas_router
 
 app = FastAPI()
 
@@ -42,11 +43,12 @@ app.add_middleware(
 )
 
 app.include_router(auth_router)
-app.include_router(vehiculos_router)
-app.include_router(membresias_router)
+app.include_router(operaciones_router)
+app.include_router(mensualidades_router)
+app.include_router(recibos_router)
 app.include_router(caja_router)
-app.include_router(configuracion_router)
 app.include_router(dashboard_router)
+app.include_router(tarifas_router)
 
 @app.get("/")
 def root():
