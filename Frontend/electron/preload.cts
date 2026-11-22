@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from "electron";
-import type { FacturaImpresion, PrinterConfig } from "./printing/types.js";
+import type { FacturaImpresion, IngresoData, PrinterConfig } from "./printing/types.js";
 
 // El preload corre aislado y solo puede importar "electron": por eso los canales
 // se repiten aquí como literales (fuente: electron/printing/ipc.ts → CANALES).
@@ -9,6 +9,8 @@ contextBridge.exposeInMainWorld("smartpark", {
   printer: {
     imprimirFactura: (factura: FacturaImpresion) =>
       ipcRenderer.invoke("printer:imprimir-factura", factura),
+    imprimirIngreso: (ingreso: IngresoData) =>
+      ipcRenderer.invoke("printer:imprimir-ingreso", ingreso),
     imprimirPrueba: () => ipcRenderer.invoke("printer:imprimir-prueba"),
     listarImpresoras: () => ipcRenderer.invoke("printer:listar"),
     getConfig: () => ipcRenderer.invoke("printer:get-config"),

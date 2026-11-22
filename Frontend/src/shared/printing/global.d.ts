@@ -10,6 +10,7 @@ interface Window {
     platform: string;
     printer?: {
       imprimirFactura(factura: import("./types").FacturaImpresion): Promise<import("./types").ResultadoImpresion>;
+      imprimirIngreso(ingreso: import("./types").IngresoData): Promise<import("./types").ResultadoImpresion>;
       imprimirPrueba(): Promise<import("./types").ResultadoImpresion>;
       listarImpresoras(): Promise<import("./types").ResultadoImpresoras>;
       getConfig(): Promise<import("./types").ResultadoConfig>;

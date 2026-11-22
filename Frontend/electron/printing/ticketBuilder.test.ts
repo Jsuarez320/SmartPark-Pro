@@ -3,8 +3,8 @@ import { describe, it } from "node:test";
 import { COLUMNAS, formatearCOP, labelValue, tableRow, twoColumns, wrapCentered } from "./formato.js";
 import { CONFIG_POR_DEFECTO } from "./printerConfig.js";
 import { reciboDePrueba } from "./printerService.js";
-import { columnasDe, componerRecibo, construirTicket } from "./ticketBuilder.js";
-import type { PrinterConfig, ReciboData } from "./types.js";
+import { columnasDe, componerIngreso, componerRecibo, construirTicket } from "./ticketBuilder.js";
+import type { IngresoData, PrinterConfig, ReciboData } from "./types.js";
 
 const config: PrinterConfig = {
   ...structuredClone(CONFIG_POR_DEFECTO),
@@ -189,5 +189,32 @@ describe("buffer ESC/POS", () => {
     const buf = await construirTicket(reciboLargo(), config);
     assert.ok(!buf.includes(Buffer.from([0x1d, 0x76, 0x30])));
     assert.ok(!buf.includes(Buffer.from([0x1b, 0x2a])));
+  });
+});
+
+describe("recibo de entrada (diarios)", () => {
+  const ingreso: IngresoData = {
+    tiquete: "D-000123",
+    horaEntrada: new Date(2026, 10, 22, 9, 57).toISOString(),
+    tipoVehiculo: "moto",
+    placa: "XZO75",
+    marca: "HONDA",
+    plan: "Bloque 15 min",
+    tarifa: 1600,
+  };
+
+  it("ninguna línea supera el ancho, ni con datos muy largos", () => {
+    for (const r of [ingreso, { ...ingreso, tiquete: "D-" + "9".repeat(30), plan: "PLAN ".repeat(12), marca: "M".repeat(30) }]) {
+      for (const l of componerIngreso(r, config)) {
+        assert.ok(l.texto.length <= columnasDe(l), `Línea de ${l.texto.length} col.: "${l.texto}"`);
+      }
+    }
+  });
+
+  it("muestra tiquete, placa y tarifa", () => {
+    const texto = componerIngreso(ingreso, config).map((l) => l.texto).join("\n");
+    assert.match(texto, /D-000123/);
+    assert.match(texto, /XZO75/);
+    assert.match(texto, /\$1\.600/);
   });
 });

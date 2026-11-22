@@ -1,11 +1,12 @@
 import { app, ipcMain } from "electron";
 import { listarImpresoras } from "./impresoras.js";
 import { crearPrinterService } from "./printerService.js";
-import type { ItemRecibo, PrinterConfig, ReciboData } from "./types.js";
+import type { IngresoData, ItemRecibo, PrinterConfig, ReciboData } from "./types.js";
 
 /** Nombres de canal. El preload (.cts, sin imports locales) repite estos literales. */
 export const CANALES = {
   imprimirFactura: "printer:imprimir-factura",
+  imprimirIngreso: "printer:imprimir-ingreso",
   imprimirPrueba: "printer:imprimir-prueba",
   getConfig: "printer:get-config",
   setConfig: "printer:set-config",
@@ -95,6 +96,24 @@ export function validarFactura(raw: unknown): ReciboData {
   };
 }
 
+export function validarIngreso(raw: unknown): IngresoData {
+  if (!esObjeto(raw)) throw new Error("El recibo de entrada debe ser un objeto.");
+  const { tipoVehiculo } = raw;
+  if (tipoVehiculo !== "carro" && tipoVehiculo !== "moto") {
+    throw new Error('"tipoVehiculo" debe ser "carro" o "moto".');
+  }
+  return {
+    tiquete: cadena(raw, "tiquete", 32),
+    horaEntrada: fechaIso(raw, "horaEntrada"),
+    tipoVehiculo,
+    placa: cadena(raw, "placa", 12),
+    marca: opcional(raw, "marca", 30),
+    plan: cadena(raw, "plan", 40),
+    tarifa: dinero(raw, "tarifa"),
+    cajero: opcional(raw, "cajero", 40),
+  };
+}
+
 // ------------------------------------------------------------------ handlers
 
 function mensaje(e: unknown): string {
@@ -119,6 +138,9 @@ export function registerPrinterIpc(): void {
 
   ipcMain.handle(CANALES.imprimirFactura, (_e, payload: unknown) =>
     seguro(() => servicio.imprimirFactura(validarFactura(payload))),
+  );
+  ipcMain.handle(CANALES.imprimirIngreso, (_e, payload: unknown) =>
+    seguro(() => servicio.imprimirIngreso(validarIngreso(payload))),
   );
   ipcMain.handle(CANALES.imprimirPrueba, () => seguro(() => servicio.imprimirPrueba()));
   ipcMain.handle(CANALES.listar, () =>

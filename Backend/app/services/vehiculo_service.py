@@ -131,11 +131,17 @@ def registrar_entrada(db: Session, data: EntradaRequest, usuario_id: uuid.UUID) 
             ).scalar_one()
             plan_nombre = mem["plan"]
             membresia_id = mem["id"]
+            # Mensual: la tarjeta física es obligatoria
+            if not data.tarjeta:
+                raise NegocioError(422, "Los clientes mensuales ingresan con tarjeta: indica el código")
+            codigo = data.tarjeta
         else:
             tarifa = buscar_tarifa(db, data.plan, data.tipo)
             tarifa_id, tarifa_valor = tarifa["id"], tarifa["valor"]
             plan_nombre = tarifa["plan_nombre"]
             membresia_id = None
+            # Diario: sin tarjeta; se emite un tiquete numerado (se imprime el recibo)
+            codigo = "D-%06d" % db.execute(text("SELECT nextval('seq_tiquete_diario')")).scalar_one()
 
         ingreso = db.execute(
             text(
@@ -148,21 +154,28 @@ def registrar_entrada(db: Session, data: EntradaRequest, usuario_id: uuid.UUID) 
             ),
             {
                 "v": vehiculo_id, "t": tarifa_id, "tv": tarifa_valor, "m": membresia_id,
-                "op": usuario_id, "tarjeta": data.tarjeta, "placa": data.placa,
+                "op": usuario_id, "tarjeta": codigo, "placa": data.placa,
             },
         ).mappings().one()
         db.commit()
 
+    es_mensual = membresia_id is not None
     return EntradaResponse(
         id=str(ingreso["id"]),
         estado="activo",
-        tarjeta=data.tarjeta,
+        tarjeta=codigo,
         placa=data.placa,
         tipo=data.tipo,
         plan=plan_nombre,
-        membresia=membresia_id is not None,
+        membresia=es_mensual,
+        tarifa=0 if es_mensual else entero(tarifa_valor),
+        marca=data.marca,
         hora_ingreso=ingreso["fecha_ingreso"],
-        mensaje=f"Vehículo {data.placa} ingresado con la tarjeta {data.tarjeta}",
+        mensaje=(
+            f"Vehículo {data.placa} ingresado con la tarjeta {codigo}"
+            if es_mensual
+            else f"Vehículo {data.placa} ingresado. Tiquete {codigo}"
+        ),
     )
 
 

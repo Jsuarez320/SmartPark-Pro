@@ -24,6 +24,7 @@ export async function consultarPlaca(placa: string): Promise<ConsultaPlaca> {
 export async function registrarEntrada(data: RegistroFormState): Promise<RegistroResponse> {
   const { data: res } = await api.post<RegistroResponse>("/vehiculos/entrada", {
     ...data,
+    tarjeta: data.tarjeta.trim() || null,
     marca: data.marca.trim() || null,
   });
   return res;

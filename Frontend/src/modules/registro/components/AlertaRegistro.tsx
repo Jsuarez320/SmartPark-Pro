@@ -44,7 +44,9 @@ export function AlertaRegistro({ open, data, onClose }: AlertaRegistroProps) {
 
         <div className="rounded-xl bg-background border border-border p-4 space-y-3">
           <div className="flex items-center justify-between pb-2 border-b border-border">
-            <span className="text-xs text-text-muted font-medium uppercase tracking-wider">Tarjeta</span>
+            <span className="text-xs text-text-muted font-medium uppercase tracking-wider">
+              {data.mensual === false ? "Tiquete" : "Tarjeta"}
+            </span>
             <span className="text-sm font-mono font-bold text-text-primary">{data.tarjeta}</span>
           </div>
 
@@ -85,6 +87,18 @@ export function AlertaRegistro({ open, data, onClose }: AlertaRegistroProps) {
             </>
           )}
         </div>
+
+        {!esError && data.impresion && (
+          <p
+            className={`mt-4 rounded-lg px-3 py-2 text-center text-sm font-medium ${
+              data.impresion.ok ? "bg-green-50 text-green-700" : "bg-amber-50 text-amber-800"
+            }`}
+          >
+            {data.impresion.ok
+              ? "Recibo de entrada impreso"
+              : "No se pudo imprimir el recibo. El ingreso quedó registrado; revise la impresora."}
+          </p>
+        )}
 
         <div className="mt-6">
           <Button

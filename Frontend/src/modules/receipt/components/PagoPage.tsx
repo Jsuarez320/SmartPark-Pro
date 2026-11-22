@@ -35,7 +35,7 @@ export function PagoPage() {
         <div>
           <h1 className="text-2xl font-bold text-text-primary">Cobrar Salida</h1>
           <p className="text-sm text-text-muted mt-1">
-            Pulse Cobrar y pase la tarjeta por el lector para registrar la salida
+            Pulse Cobrar y pase la tarjeta (mensual) o escriba la placa o el tiquete (diario), o toque el vehículo en la lista
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -74,9 +74,11 @@ export function PagoPage() {
       ) : (
         <div className="space-y-3">
           {vehiculos.map((v) => (
-            <div
+            <button
+              type="button"
               key={v.ingresoId}
-              className="flex items-center justify-between rounded-xl border border-border bg-surface p-4 shadow-sm hover:shadow transition-shadow"
+              onClick={() => abrirPago(v.ingresoId)}
+              className="flex w-full items-center justify-between rounded-xl border border-border bg-surface p-4 text-left shadow-sm hover:shadow transition-shadow"
             >
               <div className="flex items-center gap-4">
                 <div
@@ -93,7 +95,7 @@ export function PagoPage() {
                 <div>
                   <p className="font-bold text-text-primary text-base">{v.placa}</p>
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-text-muted mt-0.5">
-                    <span className="font-mono">{v.tarjeta}</span>
+                    <span className="font-mono">{v.membresia ? v.tarjeta : `Tiq. ${v.tarjeta}`}</span>
                     <span className="capitalize">{v.tipo}</span>
                     <span>{v.plan}{v.membresia ? " (membresía)" : ""}</span>
                     <span className="flex items-center gap-1">
@@ -104,7 +106,7 @@ export function PagoPage() {
                 </div>
               </div>
               <p className="text-lg font-bold text-text-primary">${v.valor.toLocaleString("es-CO")}</p>
-            </div>
+            </button>
           ))}
         </div>
       )}

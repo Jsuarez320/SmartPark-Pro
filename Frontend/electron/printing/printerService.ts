@@ -1,8 +1,8 @@
-import { construirTicket } from "./ticketBuilder.js";
+import { construirTicket, construirTicketIngreso } from "./ticketBuilder.js";
 import { guardarConfig, leerConfig } from "./printerConfig.js";
 import { FileDumpProvider } from "./providers/fileDumpProvider.js";
 import { WinspoolProvider } from "./providers/winspoolProvider.js";
-import type { PrinterConfig, PrinterProvider, ReciboData } from "./types.js";
+import type { IngresoData, PrinterConfig, PrinterProvider, ReciboData } from "./types.js";
 
 /** Elige el provider según la config y la plataforma. Un EscPosRedProvider se añadiría aquí. */
 export function elegirProvider(config: PrinterConfig, userDataDir: string): PrinterProvider {
@@ -86,11 +86,18 @@ export function crearPrinterService(userDataDir: string) {
     await elegirProvider(config, userDataDir).imprimir(buffer);
   }
 
+  async function imprimirIngreso(ingreso: IngresoData, config: PrinterConfig): Promise<void> {
+    const buffer = await construirTicketIngreso(ingreso, config);
+    await elegirProvider(config, userDataDir).imprimir(buffer);
+  }
+
   return {
     getConfig: (): PrinterConfig => leerConfig(userDataDir),
     setConfig: (raw: unknown): PrinterConfig => guardarConfig(userDataDir, raw),
     imprimirFactura: (factura: ReciboData) =>
       enSerie(() => imprimir(factura, leerConfig(userDataDir))),
+    imprimirIngreso: (ingreso: IngresoData) =>
+      enSerie(() => imprimirIngreso(ingreso, leerConfig(userDataDir))),
     imprimirPrueba: () =>
       enSerie(() => imprimir(reciboDePrueba(), conEncabezadoDeEjemplo(leerConfig(userDataDir)))),
   };

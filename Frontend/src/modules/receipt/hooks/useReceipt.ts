@@ -82,6 +82,7 @@ export function useReceipt(ingresoId: string | null) {
         ticket: res.ticket,
         placa: res.placa,
         tarjeta: res.tarjeta,
+        mensual: vehiculo.membresia,
         tipo: res.tipo,
         plan: res.plan,
         horaIngreso: formatHora(res.horaIngreso),

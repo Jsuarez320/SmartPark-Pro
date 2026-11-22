@@ -14,7 +14,7 @@ import {
   twoColumns,
   wrapCentered,
 } from "./formato.js";
-import type { PrinterConfig, ReciboData } from "./types.js";
+import type { IngresoData, PrinterConfig, ReciboData } from "./types.js";
 
 /**
  * Por qué NO pasamos `interface` al constructor:
@@ -116,6 +116,50 @@ export function componerRecibo(r: ReciboData, config: PrinterConfig): Linea[] {
   return lineas;
 }
 
+/** Maqueta del recibo de ENTRADA (clientes diarios). Pura, igual que componerRecibo. */
+export function componerIngreso(r: IngresoData, config: PrinterConfig): Linea[] {
+  const lineas: Linea[] = [];
+  const izq = (textos: string[], negrita = false) =>
+    textos.forEach((texto) => lineas.push({ texto, modo: "normal", negrita }));
+  const centro = (texto: string, negrita = false, modo: Linea["modo"] = "normal") =>
+    wrapCentered(texto, COLUMNAS).forEach((t) => lineas.push({ texto: t, modo, centrado: true, negrita }));
+  const sep = () => izq(["-".repeat(COLUMNAS)]);
+  const { encabezado: e } = config;
+
+  if (limpiar(e.nombre)) centro(e.nombre, true, "alto");
+  if (limpiar(e.nit)) centro(`NIT ${e.nit}`);
+  if (limpiar(e.horario)) centro(e.horario);
+  if (limpiar(e.direccion)) centro(e.direccion);
+  if (limpiar(e.telefono)) centro(e.telefono);
+  izq([""]);
+
+  centro("RECIBO DE ENTRADA", true);
+  sep();
+  // Número de tiquete bien visible: es lo que el cliente presenta para salir
+  centro("TIQUETE", false);
+  wrapCentered(r.tiquete, COLUMNAS_DOBLE).forEach((t) =>
+    lineas.push({ texto: t, modo: "grande", centrado: true, negrita: true }),
+  );
+  sep();
+  if (r.cajero && limpiar(r.cajero)) izq(labelValue("Cajero No", r.cajero, COLUMNAS));
+  izq(labelValuePair(["Entrada", formatearFecha(r.horaEntrada)], ["Hora", formatearHora24(r.horaEntrada)], COLUMNAS));
+  izq(
+    labelValuePair(
+      ["Tipo Veh.", r.tipoVehiculo === "moto" ? "MOTO" : "CARRO"],
+      ["Placa", limpiar(r.placa).toUpperCase()],
+      COLUMNAS,
+    ),
+  );
+  if (r.marca && limpiar(r.marca)) izq(labelValue("Marca", r.marca, COLUMNAS));
+  izq(labelValue("Plan", r.plan, COLUMNAS));
+  izq(labelValue("Tarifa", formatearCOP(r.tarifa), COLUMNAS));
+  sep();
+  centro("Conserve este recibo: lo necesita para retirar su vehículo.");
+  if (limpiar(config.piePagina)) centro(config.piePagina);
+
+  return lineas;
+}
+
 /**
  * Imprime UNA línea y deja el estado limpio: negrita (ESC E 0), tamaño (GS ! 0) y
  * alineación a la izquierda. Así ningún estilo "contamina" a las líneas siguientes.
@@ -134,7 +178,7 @@ function imprimirLinea(p: ThermalPrinter, l: Linea): void {
   p.alignLeft();
 }
 
-export async function construirTicket(r: ReciboData, config: PrinterConfig): Promise<Buffer> {
+function construirDesdeLineas(lineas: Linea[], config: PrinterConfig): Buffer {
   const p = crearConstructor(config.characterSet);
 
   // Inicio explícito, ANTES de la página de códigos porque ESC @ la reinicia:
@@ -148,7 +192,7 @@ export async function construirTicket(r: ReciboData, config: PrinterConfig): Pro
   p.setCharacterSet(config.characterSet as CharacterSet);
   p.bold(false);
 
-  for (const linea of componerRecibo(r, config)) imprimirLinea(p, linea);
+  for (const linea of lineas) imprimirLinea(p, linea);
 
   for (let i = 0; i < 4; i++) p.newLine();
   p.add(Buffer.from([0x1d, 0x56, 0x42, 0x00])); // GS V 66 0: avanza y corta parcialmente
@@ -157,4 +201,13 @@ export async function construirTicket(r: ReciboData, config: PrinterConfig): Pro
   const buffer = p.getBuffer();
   if (!buffer) throw new Error("El tiquete quedó vacío.");
   return buffer;
+}
+
+export async function construirTicket(r: ReciboData, config: PrinterConfig): Promise<Buffer> {
+  return construirDesdeLineas(componerRecibo(r, config), config);
+}
+
+/** Recibo de entrada de clientes diarios. */
+export async function construirTicketIngreso(r: IngresoData, config: PrinterConfig): Promise<Buffer> {
+  return construirDesdeLineas(componerIngreso(r, config), config);
 }

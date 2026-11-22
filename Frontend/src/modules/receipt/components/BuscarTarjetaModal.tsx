@@ -8,7 +8,7 @@ import { obtenerPatio } from "../services/receipt.service";
 interface BuscarTarjetaModalProps {
   open: boolean;
   onClose: () => void;
-  /** Se llama cuando la tarjeta leída corresponde a un vehículo en el patio. */
+  /** Se llama cuando la tarjeta, el tiquete o la placa corresponde a un vehículo en el patio. */
   onEncontrado: (ingresoId: string, tarjeta: string) => void;
 }
 
@@ -41,11 +41,14 @@ export function BuscarTarjetaModal({ open, onClose, onEncontrado }: BuscarTarjet
     try {
       // Consulta por el código exacto: no depende de ningún filtro con retraso.
       const resultados = await obtenerPatio(tarjeta);
-      const vehiculo = resultados.find((v) => v.tarjeta.toUpperCase() === tarjeta);
+      // Mensual: tarjeta. Diario: placa o número de tiquete (D-000123). Coincidencia exacta.
+      const vehiculo = resultados.find(
+        (v) => v.tarjeta.toUpperCase() === tarjeta || v.placa.toUpperCase() === tarjeta,
+      );
       if (vehiculo) {
-        onEncontrado(vehiculo.ingresoId, tarjeta);
+        onEncontrado(vehiculo.ingresoId, vehiculo.tarjeta);
       } else {
-        setError(`No hay un vehículo en el patio con la tarjeta ${tarjeta}`);
+        setError(`No hay un vehículo en el patio con la tarjeta, tiquete o placa ${tarjeta}`);
         setCodigo("");
       }
     } catch (err) {
@@ -75,9 +78,9 @@ export function BuscarTarjetaModal({ open, onClose, onEncontrado }: BuscarTarjet
           <div className="mx-auto mb-3 flex size-14 items-center justify-center rounded-full bg-brand-light">
             <CreditCard className="size-7 text-brand" />
           </div>
-          <h2 className="text-xl font-bold text-text-primary">Buscar por tarjeta</h2>
+          <h2 className="text-xl font-bold text-text-primary">Buscar vehículo</h2>
           <p className="text-sm text-text-muted mt-1">
-            Pase la tarjeta del vehículo por el lector
+            Pase la tarjeta (mensual) o escriba la placa o el tiquete (diario)
           </p>
         </div>
 
@@ -95,7 +98,7 @@ export function BuscarTarjetaModal({ open, onClose, onEncontrado }: BuscarTarjet
               setCodigo(e.target.value.toUpperCase());
               setError(null);
             }}
-            placeholder="Esperando tarjeta..."
+            placeholder="Tarjeta, placa o tiquete..."
             className="h-12 text-center font-mono text-lg font-bold tracking-wider"
             disabled={buscando}
             maxLength={32}

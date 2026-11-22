@@ -46,6 +46,25 @@ export interface ReciboData {
 /** Alias histórico. */
 export type FacturaImpresion = ReciboData;
 
+/**
+ * Recibo de ENTRADA para clientes diarios (sin tarjeta). Fechas en ISO 8601.
+ * Los mensuales usan tarjeta física y no imprimen este recibo.
+ */
+export interface IngresoData {
+  /** Número del tiquete, ej. "D-000123". */
+  tiquete: string;
+  horaEntrada: string;
+  tipoVehiculo: TipoVehiculo;
+  placa: string;
+  marca?: string;
+  /** Nombre del plan elegido, ej. "Bloque 15 min". */
+  plan: string;
+  /** Valor de la tarifa del plan (pesos COP enteros). */
+  tarifa: number;
+  /** Opcional: "01 CAJERO 01". */
+  cajero?: string;
+}
+
 export interface EncabezadoParqueadero {
   nombre: string;
   nit: string;

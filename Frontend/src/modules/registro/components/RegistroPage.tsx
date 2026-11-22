@@ -27,6 +27,7 @@ export function RegistroPage() {
     alertaAbierta,
     precio,
     calculando,
+    esMensual,
     puedeRegistrar,
     registrar,
     cerrarAlerta,
@@ -59,8 +60,8 @@ export function RegistroPage() {
 
   // Tras registrar (o cerrar la alerta) dejamos el campo listo para la próxima tarjeta.
   useEffect(() => {
-    if (!envio && !alertaAbierta) tarjetaRef.current?.focus();
-  }, [envio, alertaAbierta]);
+    if (!envio && !alertaAbierta) (tarjetaRef.current ?? placaRef.current)?.focus();
+  }, [envio, alertaAbierta, esMensual]);
 
   const handleTarjetaKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     // El Enter final del lector no debe enviar el formulario: pasamos a la placa.
@@ -88,31 +89,12 @@ export function RegistroPage() {
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-text-primary">Registro de Ingreso</h1>
         <p className="text-sm text-text-muted mt-1">
-          Asigne una tarjeta del parqueadero al vehículo que ingresa
+          Clientes mensuales ingresan con tarjeta; los diarios reciben un recibo impreso
         </p>
       </div>
 
       <div className="rounded-2xl border border-border bg-surface p-6 sm:p-8 shadow-sm">
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="space-y-2">
-            <label className="flex items-center gap-2 text-sm font-medium text-text-secondary">
-              <CreditCard className="size-4" /> Tarjeta del Parqueadero
-            </label>
-            <Input
-              ref={tarjetaRef}
-              value={tarjeta}
-              onChange={(e) => setTarjeta(e.target.value.toUpperCase())}
-              onKeyDown={handleTarjetaKeyDown}
-              onFocus={(e) => e.currentTarget.select()}
-              placeholder="Pase la tarjeta por el lector"
-              className="h-12 font-mono text-lg font-bold tracking-wider"
-              disabled={envio}
-              maxLength={32}
-              autoComplete="off"
-              autoFocus
-            />
-          </div>
-
           <div className="space-y-2">
             <label className="text-sm font-medium text-text-secondary">Nº de Placa</label>
             <Input
@@ -123,6 +105,7 @@ export function RegistroPage() {
               className="h-12 text-lg font-bold tracking-widest uppercase"
               disabled={envio}
               maxLength={10}
+              autoFocus
             />
             {conMembresia && (
               <p className="flex items-center gap-1.5 text-sm font-medium text-green-700">
@@ -131,6 +114,27 @@ export function RegistroPage() {
               </p>
             )}
           </div>
+
+          {esMensual && (
+            <div className="space-y-2">
+              <label className="flex items-center gap-2 text-sm font-medium text-text-secondary">
+                <CreditCard className="size-4" /> Tarjeta del Parqueadero (mensual)
+              </label>
+              <Input
+                ref={tarjetaRef}
+                value={tarjeta}
+                onChange={(e) => setTarjeta(e.target.value.toUpperCase())}
+                onKeyDown={handleTarjetaKeyDown}
+                onFocus={(e) => e.currentTarget.select()}
+                placeholder="Pase la tarjeta por el lector"
+                className="h-12 font-mono text-lg font-bold tracking-wider"
+                disabled={envio}
+                maxLength={32}
+                autoComplete="off"
+                autoFocus
+              />
+            </div>
+          )}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">

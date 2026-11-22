@@ -38,6 +38,8 @@ export interface DatosPago {
   ticket: string;
   placa: string;
   tarjeta: string;
+  /** true = mensual (tarjeta); false = diario (número de tiquete). */
+  mensual: boolean;
   tipo: string;
   plan: string;
   horaIngreso: string;

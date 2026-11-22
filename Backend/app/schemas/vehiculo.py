@@ -44,7 +44,8 @@ class ConsultaResponse(CamelModel):
 
 
 class EntradaRequest(CamelModel):
-    tarjeta: str = Field(min_length=1, max_length=32)
+    # Solo clientes mensuales usan tarjeta; para diarios se genera un tiquete.
+    tarjeta: str | None = Field(default=None, max_length=32)
     placa: str
     tipo: TipoVehiculo = "carro"
     marca: str | None = Field(default=None, max_length=50)
@@ -52,11 +53,9 @@ class EntradaRequest(CamelModel):
 
     @field_validator("tarjeta")
     @classmethod
-    def _tarjeta(cls, v: str) -> str:
-        v = v.strip().upper()
-        if not v:
-            raise ValueError("La tarjeta no puede estar vacía")
-        return v
+    def _tarjeta(cls, v: str | None) -> str | None:
+        v = v.strip().upper() if v else None
+        return v or None
 
     @field_validator("placa")
     @classmethod
@@ -73,11 +72,15 @@ class EntradaRequest(CamelModel):
 class EntradaResponse(CamelModel):
     id: str
     estado: str
+    # Código de la tarjeta (mensual) o número del tiquete impreso (diario, "D-000123").
     tarjeta: str
     placa: str
     tipo: TipoVehiculo
     plan: str
     membresia: bool
+    # Valor de la tarifa del plan (para el recibo de entrada). 0 si ingresa con membresía.
+    tarifa: int
+    marca: str | None = None
     hora_ingreso: datetime
     mensaje: str
 

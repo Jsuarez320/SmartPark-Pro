@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type {
   FacturaImpresion,
+  IngresoData,
   PrinterConfig,
   ResultadoConfig,
   ResultadoImpresion,
@@ -94,6 +95,18 @@ export function usePrinter() {
     [api, ejecutar],
   );
 
+  /** Recibo de entrada (clientes diarios). */
+  const imprimirIngreso = useCallback(
+    async (ingreso: IngresoData): Promise<boolean> => {
+      if (!api) {
+        setError(NO_DISPONIBLE);
+        return false;
+      }
+      return (await ejecutar(() => api.imprimirIngreso(ingreso)))?.ok === true;
+    },
+    [api, ejecutar],
+  );
+
   const imprimirPrueba = useCallback(async (): Promise<boolean> => {
     if (!api) {
       setError(NO_DISPONIBLE);
@@ -113,6 +126,7 @@ export function usePrinter() {
     listarImpresoras,
     guardarConfig,
     imprimirFactura,
+    imprimirIngreso,
     imprimirPrueba,
   };
 }

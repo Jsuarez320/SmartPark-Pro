@@ -96,7 +96,7 @@ export function PagoModal({ open, onClose, ingresoId, onPagado }: PagoModalProps
                 <div className="rounded-xl bg-background border border-border p-4 space-y-2">
                   <div className="flex items-center justify-between">
                     <p className="text-xs text-text-muted uppercase tracking-wider font-semibold">Vehículo</p>
-                    <span className="text-xs font-mono text-text-muted">Tarjeta: {vehiculo.tarjeta}</span>
+                    <span className="text-xs font-mono text-text-muted">{vehiculo.membresia ? "Tarjeta" : "Tiquete"}: {vehiculo.tarjeta}</span>
                   </div>
                   <p className="text-2xl font-bold text-text-primary">{vehiculo.placa}</p>
                   <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-text-muted">
@@ -229,7 +229,7 @@ export function PagoModal({ open, onClose, ingresoId, onPagado }: PagoModalProps
                 <span className="font-bold text-text-primary">{datosRecibo.placa}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-text-muted">Tarjeta</span>
+                <span className="text-text-muted">{datosRecibo.mensual ? "Tarjeta" : "Tiquete"}</span>
                 <span>{datosRecibo.tarjeta}</span>
               </div>
               <div className="flex justify-between">
