@@ -20,14 +20,21 @@ const AUTH_PATHS = ["/auth/login", "/auth/refresh", "/auth/logout"];
 // y todas las requests esperan el mismo resultado.
 let refreshPromise: Promise<string | null> | null = null;
 
+/** Respuesta de POST /auth/refresh (par rotado y rol fresco). */
+interface RefreshApiResponse {
+  access_token: string;
+  refresh_token: string;
+  es_admin: boolean;
+}
+
 async function intentarRefresh(): Promise<string | null> {
   const refreshToken = useAuthStore.getState().refreshToken;
   if (!refreshToken) return null;
   try {
-    const { refreshTokenRequest } = await import(
-      "@/modules/auth/services/auth.service"
-    );
-    const data = await refreshTokenRequest(refreshToken);
+    // axios "pelado" (sin los interceptores de `api`): evita bucles y no depende de ningún módulo.
+    const { data } = await axios.post<RefreshApiResponse>(`${api.defaults.baseURL}/auth/refresh`, {
+      refresh_token: refreshToken,
+    });
     // Persistir el par rotado y el rol fresco (es_admin re-leído de la DB).
     useAuthStore.setState((state) => ({
       token: data.access_token,

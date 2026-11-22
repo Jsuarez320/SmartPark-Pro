@@ -20,3 +20,7 @@ dependencies = [
 venvPath = "."
 venv = ".venv"
 include = ["app"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

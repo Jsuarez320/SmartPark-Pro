@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Loader2, Printer, Receipt, Save } from "lucide-react";
+import { Loader2, Printer, Save } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import { Checkbox } from "@/shared/components/ui/checkbox";
 import { Input } from "@/shared/components/ui/input";
@@ -7,7 +7,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { usePrinter } from "@/shared/printing/usePrinter";
 import { CHARACTER_SETS_SUGERIDOS } from "@/shared/printing/types";
 import type { ModoImpresion, PrinterConfig } from "@/shared/printing/types";
-import { crearFacturaEjemplo } from "../mocks/facturaEjemplo";
 
 const CLASE_TEXTAREA =
   "flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50";
@@ -22,14 +21,34 @@ function Campo({ etiqueta, children }: { etiqueta: string; children: React.React
 }
 
 export function ImpresoraSection() {
-  const { disponible, config, cargando, ocupado, error, limpiarError, guardarConfig, imprimirFactura, imprimirPrueba } =
-    usePrinter();
+  const {
+    disponible,
+    config,
+    cargando,
+    ocupado,
+    error,
+    limpiarError,
+    impresoras,
+    listarImpresoras,
+    guardarConfig,
+    imprimirPrueba,
+  } = usePrinter();
   const [borrador, setBorrador] = useState<PrinterConfig | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
 
   useEffect(() => {
     if (config) setBorrador(config);
   }, [config]);
+
+  useEffect(() => {
+    void listarImpresoras();
+  }, [listarImpresoras]);
+
+  // Si la impresora guardada ya no está instalada, se muestra igual para poder avisar de ello.
+  const opcionesImpresora =
+    borrador?.impresora && !impresoras.includes(borrador.impresora)
+      ? [borrador.impresora, ...impresoras]
+      : impresoras;
 
   const modificado = borrador !== null && config !== null && JSON.stringify(borrador) !== JSON.stringify(config);
 
@@ -52,7 +71,7 @@ export function ImpresoraSection() {
 
   // En modo USB, "ok" solo significa que Windows encoló el trabajo (ver usbSpoolerProvider).
   const mensajeOk = (base: string) =>
-    config?.modo === "usb" ? `${base} enviada a la cola de impresión de Windows.` : `${base} guardada en el archivo de volcado.`;
+    config?.modo === "usb" ? `${base} enviada a la impresora (RAW).` : `${base} guardada en el archivo de volcado.`;
 
   return (
     <div className="rounded-xl border border-border bg-surface p-6 shadow-sm">
@@ -92,15 +111,23 @@ export function ImpresoraSection() {
                 </SelectContent>
               </Select>
             </Campo>
-            <Campo etiqueta="Nombre compartido en Windows">
-              <Input
-                value={borrador.nombreCompartido}
-                maxLength={32}
+            <Campo etiqueta="Impresora instalada">
+              <Select
+                value={borrador.impresora || undefined}
+                onValueChange={(v) => cambiar({ impresora: v })}
                 disabled={borrador.modo !== "usb"}
-                onChange={(e) => cambiar({ nombreCompartido: e.target.value })}
-                placeholder="POS80"
-                className="h-11"
-              />
+              >
+                <SelectTrigger className="h-11">
+                  <SelectValue placeholder="Selecciona una impresora" />
+                </SelectTrigger>
+                <SelectContent>
+                  {opcionesImpresora.map((n) => (
+                    <SelectItem key={n} value={n}>
+                      {n}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </Campo>
             <Campo etiqueta="Juego de caracteres">
               <Select value={borrador.characterSet} onValueChange={(v) => cambiar({ characterSet: v })}>
@@ -158,7 +185,31 @@ export function ImpresoraSection() {
             </Campo>
           </div>
 
-          <Campo etiqueta="Pie de página">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Campo etiqueta="Horario (una línea por renglón)">
+              <textarea
+                value={borrador.encabezado.horario}
+                maxLength={200}
+                rows={3}
+                placeholder={"LUNES A VIERNES 6 AM A 8 PM\nSÁBADOS 7 AM A 2 PM"}
+                onChange={(e) => cambiarEncabezado({ horario: e.target.value })}
+                className={CLASE_TEXTAREA}
+              />
+            </Campo>
+            <Campo etiqueta="Resolución de numeración DIAN (opcional)">
+              <textarea
+                value={borrador.encabezado.resolucionDian}
+                maxLength={300}
+                rows={3}
+                placeholder="Resolución No. ... del ... Prefijo SP del 1 al 50000"
+                onChange={(e) => cambiarEncabezado({ resolucionDian: e.target.value })}
+                className={CLASE_TEXTAREA}
+              />
+            </Campo>
+          </div>
+          <p className="-mt-3 text-xs text-text-muted">Los campos del encabezado que dejes vacíos no se imprimen.</p>
+
+          <Campo etiqueta="Mensaje de pie (se centra y salta de línea por palabras)">
             <textarea
               value={borrador.piePagina}
               maxLength={300}
@@ -180,15 +231,6 @@ export function ImpresoraSection() {
             >
               {ocupado ? <Loader2 className="size-4 animate-spin" /> : <Printer className="size-4" />}
               Imprimir prueba
-            </Button>
-            <Button
-              variant="outline"
-              disabled={ocupado || modificado}
-              onClick={() => probar(() => imprimirFactura(crearFacturaEjemplo()), mensajeOk("Factura de ejemplo"))}
-              className="gap-2"
-            >
-              <Receipt className="size-4" />
-              Imprimir factura de ejemplo
             </Button>
             <Button
               disabled={ocupado || !modificado}

@@ -1,36 +1,27 @@
 /**
- * Espejo de electron/printing/types.ts (fuente de verdad).
- * Son dos proyectos TypeScript separados (src vs electron), así que se duplican
- * a propósito; si cambias uno, cambia el otro.
+ * Espejo de electron/printing/types.ts (fuente de verdad) para la configuración de la impresora.
+ * Los recibos viven en shared/types/recibo.ts. Son dos proyectos TypeScript separados
+ * (src vs electron), así que se duplican a propósito; si cambias uno, cambia el otro.
  */
 
 export type TipoVehiculo = "carro" | "moto";
 export type ModoImpresion = "usb" | "dump";
 
-/** Fechas en ISO 8601, total en pesos COP enteros. */
-export interface FacturaImpresion {
-  numero: string;
-  fechaEmision: string;
-  placa: string;
-  tipoVehiculo: TipoVehiculo;
-  horaEntrada: string;
-  horaSalida: string;
-  tiempoTotal: string;
-  tarifaAplicada: string;
-  total: number;
-  metodoPago: string;
-}
-
 export interface EncabezadoParqueadero {
   nombre: string;
   nit: string;
+  /** Varias líneas (una por renglón), ej. "LUNES A VIERNES 6 AM A 8 PM". */
+  horario: string;
   direccion: string;
   telefono: string;
+  /** Resolución de numeración DIAN (opcional, varias líneas). */
+  resolucionDian: string;
 }
 
 export interface PrinterConfig {
   modo: ModoImpresion;
-  nombreCompartido: string;
+  /** Nombre de la impresora instalada en Windows. */
+  impresora: string;
   characterSet: string;
   abrirCajon: boolean;
   encabezado: EncabezadoParqueadero;
@@ -38,6 +29,7 @@ export interface PrinterConfig {
 }
 
 export type ResultadoImpresion = { ok: true } | { ok: false; error: string };
+export type ResultadoImpresoras = { ok: true; impresoras: string[] } | { ok: false; error: string };
 export type ResultadoConfig = { ok: true; config: PrinterConfig } | { ok: false; error: string };
 
 /** Juegos de caracteres para español, para el selector. PC858_EURO es el primero a probar. */

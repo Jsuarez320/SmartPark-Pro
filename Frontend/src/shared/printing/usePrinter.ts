@@ -1,9 +1,16 @@
 import { useCallback, useEffect, useState } from "react";
-import type { FacturaImpresion, PrinterConfig, ResultadoConfig, ResultadoImpresion } from "./types";
+import type {
+  PrinterConfig,
+  ResultadoConfig,
+  ResultadoImpresion,
+  ResultadoImpresoras,
+} from "./types";
 
 const NO_DISPONIBLE = "La impresión solo está disponible en la aplicación de escritorio.";
 
 /**
+ * Configuración de la impresora (Configuración → Impresora) y prueba de impresión.
+ * Para imprimir recibos de la operación usa `useImprimirRecibo`.
  * Envuelve window.smartpark.printer con estados de carga y error.
  * Nunca lanza: cada acción devuelve el resultado y deja el mensaje en `error`.
  */
@@ -15,10 +22,11 @@ export function usePrinter() {
   const [cargando, setCargando] = useState(disponible);
   const [ocupado, setOcupado] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [impresoras, setImpresoras] = useState<string[]>([]);
 
   /** Ejecuta una llamada IPC: marca ocupado, captura errores inesperados y publica `error`. */
   const ejecutar = useCallback(
-    async <T extends ResultadoImpresion | ResultadoConfig>(llamada: () => Promise<T>): Promise<T | null> => {
+    async <T extends ResultadoImpresion | ResultadoConfig | ResultadoImpresoras>(llamada: () => Promise<T>): Promise<T | null> => {
       setError(null);
       setOcupado(true);
       try {
@@ -69,16 +77,12 @@ export function usePrinter() {
     [api, ejecutar],
   );
 
-  const imprimirFactura = useCallback(
-    async (factura: FacturaImpresion): Promise<boolean> => {
-      if (!api) {
-        setError(NO_DISPONIBLE);
-        return false;
-      }
-      return (await ejecutar(() => api.imprimirFactura(factura)))?.ok === true;
-    },
-    [api, ejecutar],
-  );
+  /** Vuelve a leer las impresoras instaladas en Windows. */
+  const listarImpresoras = useCallback(async (): Promise<void> => {
+    if (!api) return;
+    const r = await ejecutar(() => api.listarImpresoras());
+    if (r?.ok) setImpresoras(r.impresoras);
+  }, [api, ejecutar]);
 
   const imprimirPrueba = useCallback(async (): Promise<boolean> => {
     if (!api) {
@@ -95,8 +99,9 @@ export function usePrinter() {
     ocupado,
     error,
     limpiarError: () => setError(null),
+    impresoras,
+    listarImpresoras,
     guardarConfig,
-    imprimirFactura,
     imprimirPrueba,
   };
 }

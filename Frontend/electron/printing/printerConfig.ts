@@ -5,21 +5,21 @@ import type { PrinterConfig } from "./types.js";
 
 const NOMBRE_ARCHIVO = "printer-config.json";
 /** Mismo patrón que valida el provider USB: previene inyección de comandos. */
-export const REGEX_NOMBRE_COMPARTIDO = /^[A-Za-z0-9_-]{1,32}$/;
-
 export const CONFIG_POR_DEFECTO: PrinterConfig = {
   // 'dump' es el modo seguro: no manda nada a ninguna impresora hasta que se elija 'usb'.
   modo: "dump",
-  nombreCompartido: "POS80",
+  impresora: "", // se elige en Configuración > Impresora; nunca hardcodeada
   characterSet: "PC858_EURO",
   abrirCajon: false,
   encabezado: {
-    nombre: "SmartPark Pro",
+    nombre: "PARQUEADERO SMART PARK",
     nit: "",
+    horario: "",
     direccion: "",
     telefono: "",
+    resolucionDian: "",
   },
-  piePagina: "Gracias por su visita",
+  piePagina: "NO SE RESPONDE POR CASCOS U OBJETOS DEJADOS EN EL VEHÍCULO",
 };
 
 function esObjeto(v: unknown): v is Record<string, unknown> {
@@ -39,13 +39,14 @@ function texto(v: unknown, campo: string, max: number, obligatorio = false): str
  */
 export function validarConfig(raw: unknown): PrinterConfig {
   if (!esObjeto(raw)) throw new Error("La configuración debe ser un objeto.");
-  const { modo, nombreCompartido, characterSet, abrirCajon, encabezado, piePagina } = raw;
+  const { modo, impresora, characterSet, abrirCajon, encabezado, piePagina } = raw;
 
   if (modo !== "usb" && modo !== "dump") throw new Error('"modo" debe ser "usb" o "dump".');
-  if (typeof nombreCompartido !== "string" || !REGEX_NOMBRE_COMPARTIDO.test(nombreCompartido)) {
-    throw new Error(
-      '"nombreCompartido" solo admite letras, números, guion y guion bajo (1 a 32 caracteres).',
-    );
+  if (typeof impresora !== "string" || impresora.length > 128 || /[\x00-\x1F\x7F]/.test(impresora)) {
+    throw new Error('"impresora" debe ser un nombre de hasta 128 caracteres, sin caracteres de control.');
+  }
+  if (modo === "usb" && impresora.trim() === "") {
+    throw new Error("Selecciona una impresora para el modo USB.");
   }
   const cs = texto(characterSet, "characterSet", 40, true);
   try {
@@ -58,14 +59,16 @@ export function validarConfig(raw: unknown): PrinterConfig {
 
   return {
     modo,
-    nombreCompartido,
+    impresora,
     characterSet: cs,
     abrirCajon,
     encabezado: {
       nombre: texto(encabezado.nombre, "encabezado.nombre", 48, true),
       nit: texto(encabezado.nit, "encabezado.nit", 48),
+      horario: texto(encabezado.horario, "encabezado.horario", 200),
       direccion: texto(encabezado.direccion, "encabezado.direccion", 96),
       telefono: texto(encabezado.telefono, "encabezado.telefono", 48),
+      resolucionDian: texto(encabezado.resolucionDian, "encabezado.resolucionDian", 300),
     },
     piePagina: texto(piePagina, "piePagina", 300),
   };

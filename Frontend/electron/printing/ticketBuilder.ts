@@ -1,8 +1,8 @@
 import { ThermalPrinter, PrinterTypes } from "node-thermal-printer";
 import type { CharacterSet } from "node-thermal-printer";
-import type { FacturaImpresion, PrinterConfig } from "./types.js";
-
-const ANCHO = 48; // 80 mm con fuente A
+import { COLUMNAS, COLUMNAS_DOBLE } from "./formato.js";
+import { componerTicket } from "./plantillas.js";
+import type { PrinterConfig, ReciboGuardado } from "./types.js";
 
 /**
  * Por qué NO pasamos `interface` al constructor:
@@ -15,7 +15,7 @@ const ANCHO = 48; // 80 mm con fuente A
 export function crearConstructor(characterSet: string): ThermalPrinter {
   return new ThermalPrinter({
     type: PrinterTypes.EPSON,
-    width: ANCHO,
+    width: COLUMNAS,
     // Configurable: se ajusta contra la página de autoprueba de la impresora.
     // Lanza si la página de códigos no existe para EPSON.
     characterSet: characterSet as CharacterSet,
@@ -24,97 +24,69 @@ export function crearConstructor(characterSet: string): ThermalPrinter {
   } as ConstructorParameters<typeof ThermalPrinter>[0]);
 }
 
-/** Quita caracteres de control: evita que un texto del usuario inyecte comandos ESC/POS. */
-function limpiar(texto: string): string {
-  return texto.replace(/[\x00-\x1F\x7F]/g, " ").trim();
+/**
+ * Una línea ya maquetada.
+ *  - "normal": tamaño normal             -> 48 columnas (GS ! 0x00)  [cuerpo]
+ *  - "alto":   doble alto, ancho normal  -> 48 columnas (GS ! 0x01)  [nombre del negocio]
+ *  - "grande": doble ancho + doble alto  -> 24 columnas (GS ! 0x11)
+ * `negrita` (ESC E 1/0) se aplica solo a esa línea; el resto del recibo va en texto normal.
+ * Las líneas con `centrado` se centran en la impresora (ESC a 1); el resto va a la izquierda
+ * y ya trae su relleno de espacios calculado.
+ */
+export interface Linea {
+  texto: string;
+  modo: "normal" | "alto" | "grande";
+  centrado?: boolean;
+  negrita?: boolean;
 }
 
-function dosDigitos(n: number): string {
-  return String(n).padStart(2, "0");
-}
-
-/** "14/11/2026 18:05" en hora local; el tiquete es para quien está en el parqueadero. */
-export function formatearFechaHora(iso: string): string {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return limpiar(iso);
-  return (
-    `${dosDigitos(d.getDate())}/${dosDigitos(d.getMonth() + 1)}/${d.getFullYear()} ` +
-    `${dosDigitos(d.getHours())}:${dosDigitos(d.getMinutes())}`
-  );
-}
+export const columnasDe = (l: Linea): number => (l.modo === "grande" ? COLUMNAS_DOBLE : COLUMNAS);
 
 /**
- * COP sin decimales: "$ 12.000". Se arma a mano en vez de Intl porque Intl 'es-CO'
- * puede usar espacios no separables (U+00A0) que no existen en CP858 y saldrían como "?".
+ * Imprime UNA línea y deja el estado limpio: negrita (ESC E 0), tamaño (GS ! 0) y
+ * alineación a la izquierda. Así ningún estilo "contamina" a las líneas siguientes.
+ * Tamaño con GS ! (no ESC !); el primer argumento de setTextSize en la librería es el ANCHO.
  */
-export function formatearCOP(valor: number): string {
-  const entero = Math.round(valor);
-  const conPuntos = String(Math.abs(entero)).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-  return `${entero < 0 ? "-" : ""}$ ${conPuntos}`;
+function imprimirLinea(p: ThermalPrinter, l: Linea): void {
+  p.bold(l.negrita === true); // ESC E 1 / ESC E 0 antes del texto
+  if (l.modo === "grande") p.setTextSize(1, 1); // GS ! 0x11
+  else if (l.modo === "alto") p.setTextSize(0, 1); // GS ! 0x01
+  else p.setTextSize(0, 0); // GS ! 0x00 (cuerpo)
+  if (l.centrado) p.alignCenter();
+  else p.alignLeft();
+  p.println(l.texto);
+  p.bold(false); // ESC E 0
+  p.setTextSize(0, 0); // GS ! 0x00
+  p.alignLeft();
 }
 
-export async function construirTicket(
-  factura: FacturaImpresion,
-  config: PrinterConfig,
-): Promise<Buffer> {
+/** Bytes ESC/POS de una lista de líneas ya maquetadas. */
+export function construirDesdeLineas(lineas: Linea[], config: PrinterConfig): Buffer {
   const p = crearConstructor(config.characterSet);
-  const { encabezado } = config;
 
-  // --- Encabezado ---
-  p.alignCenter();
-  p.bold(true);
-  p.println(limpiar(encabezado.nombre));
+  // Inicio explícito, ANTES de la página de códigos porque ESC @ la reinicia:
+  //   ESC @        reset
+  //   ESC M 0      fuente A (12 puntos de ancho: 48 col. = 576 puntos = 72 mm)
+  //   GS L 0 0     margen izquierdo 0
+  //   GS W 64 02   ancho del área de impresión = 0x0240 = 576 puntos
+  p.setBuffer(
+    Buffer.from([0x1b, 0x40, 0x1b, 0x4d, 0x00, 0x1d, 0x4c, 0x00, 0x00, 0x1d, 0x57, 0x40, 0x02]),
+  );
+  p.setCharacterSet(config.characterSet as CharacterSet);
   p.bold(false);
-  if (encabezado.nit) p.println(`NIT ${limpiar(encabezado.nit)}`);
-  if (encabezado.direccion) p.println(limpiar(encabezado.direccion));
-  if (encabezado.telefono) p.println(`Tel. ${limpiar(encabezado.telefono)}`);
-  p.drawLine();
 
-  // --- Datos de la factura ---
-  p.alignLeft();
-  p.leftRight("Factura No.", limpiar(factura.numero));
-  p.leftRight("Emisión", formatearFechaHora(factura.fechaEmision));
-  p.drawLine();
+  for (const linea of lineas) imprimirLinea(p, linea);
 
-  // --- Placa grande y en negrita ---
-  p.alignCenter();
-  p.bold(true);
-  p.setTextSize(2, 2);
-  p.println(limpiar(factura.placa).toUpperCase());
-  p.setTextNormal();
-  p.bold(false);
-  p.println(factura.tipoVehiculo === "moto" ? "Moto" : "Carro");
-  p.drawLine();
-
-  // --- Tiempos y cobro ---
-  p.alignLeft();
-  p.leftRight("Entrada", formatearFechaHora(factura.horaEntrada));
-  p.leftRight("Salida", formatearFechaHora(factura.horaSalida));
-  p.leftRight("Tiempo total", limpiar(factura.tiempoTotal));
-  p.leftRight("Tarifa", limpiar(factura.tarifaAplicada));
-  p.leftRight("Método de pago", limpiar(factura.metodoPago));
-  p.drawLine();
-  p.bold(true);
-  p.setTextSize(1, 1);
-  // Con texto doble ancho cada carácter ocupa 2 columnas: el ancho útil baja a la mitad.
-  const etiqueta = "TOTAL";
-  const monto = formatearCOP(factura.total);
-  const relleno = Math.max(1, ANCHO / 2 - etiqueta.length - monto.length);
-  p.println(etiqueta + " ".repeat(relleno) + monto);
-  p.setTextNormal();
-  p.bold(false);
-  p.drawLine();
-
-  // --- Pie ---
-  if (config.piePagina) {
-    p.alignCenter();
-    for (const linea of config.piePagina.split(/\r?\n/)) p.println(limpiar(linea));
-  }
-
-  p.cut();
+  for (let i = 0; i < 4; i++) p.newLine();
+  p.add(Buffer.from([0x1d, 0x56, 0x42, 0x00])); // GS V 66 0: avanza y corta parcialmente
   if (config.abrirCajon) p.openCashDrawer();
 
   const buffer = p.getBuffer();
   if (!buffer) throw new Error("El tiquete quedó vacío.");
   return buffer;
+}
+
+/** Tiquete de cualquier recibo guardado (ingreso, pago, mensualidad o cierre de caja). */
+export function construirTicket(recibo: ReciboGuardado, config: PrinterConfig): Buffer {
+  return construirDesdeLineas(componerTicket(recibo, config), config);
 }
